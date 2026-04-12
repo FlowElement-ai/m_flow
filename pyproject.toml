@@ -118,7 +118,7 @@ milvus = ["pymilvus>=2.4"]
 
 # Local embeddings (default uses OpenAI API)
 embeddings = [
-    "fastembed<=0.6.0",
+    "fastembed<=0.8.0",
     "onnxruntime<=1.22.1",
 ]
 
@@ -158,7 +158,7 @@ coreference-full = [
 
 # Code analysis
 codegraph = [
-    "fastembed<=0.6.0 ; python_version < '3.13'",
+    "fastembed<=0.8.0 ; python_version < '3.13'",
     "transformers>=4.45.0,<5",
     "tree-sitter>=0.23.0,<0.25",
     "tree-sitter-python>=0.23.0,<0.24",
