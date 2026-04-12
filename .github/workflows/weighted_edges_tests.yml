@@ -55,12 +55,12 @@ jobs:
         with: {python-version: '3.11'}
 
       - name: "Ruff lint pass"
-        uses: astral-sh/ruff-action@0448d28b97107c864cdac36fccec40207dd11e35  # v2
+        uses: astral-sh/ruff-action@f2e32211077f40bfeab40e16285216924ebea4cb  # v2
         with:
           args: "check m_flow/knowledge/graph_ops/** m_flow/tests/unit/interfaces/graph/test_weighted_edges.py examples/python/weighted_edges_example.py"
 
       - name: "Ruff format pass"
-        uses: astral-sh/ruff-action@0448d28b97107c864cdac36fccec40207dd11e35  # v2
+        uses: astral-sh/ruff-action@f2e32211077f40bfeab40e16285216924ebea4cb  # v2
         with:
           args: "format --check m_flow/knowledge/graph_ops/** m_flow/tests/unit/interfaces/graph/test_weighted_edges.py examples/python/weighted_edges_example.py"
 
