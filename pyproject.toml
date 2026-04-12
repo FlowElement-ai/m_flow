@@ -148,7 +148,7 @@ langchain = [
     "langsmith>=0.2.0,<1.0.0",
     "langchain_text_splitters>=0.3.0,<1.0.0",
 ]
-llama-index = ["llama-index-core>=0.12.0,<0.13"]
+llama-index = ["llama-index-core>=0.12.0,<0.15"]
 
 # Coreference resolution (install from source: pip install -e ./coreference)
 # Not available via PyPI — use source install for coreference support
