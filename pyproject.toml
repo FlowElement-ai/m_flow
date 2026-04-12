@@ -93,7 +93,7 @@ doubao = []     # VolcEngine endpoint — routed via litellm
 # Graph databases
 neo4j = ["neo4j>=5.27.0,<6"]
 neptune = ["langchain_aws>=0.2.20"]
-graphiti = ["graphiti-core>=0.7.0,<0.8"]
+graphiti = ["graphiti-core>=0.7.0,<0.29"]
 
 # Relational databases
 postgres = [
