@@ -81,7 +81,7 @@ dependencies = [
 # LLM providers
 anthropic = ["anthropic>=0.26"]
 gemini = ["google-genai>=1.0"]
-groq = ["groq>=0.8.0,<1.0.0"]
+groq = ["groq>=0.8.0,<2.0.0"]
 huggingface = ["transformers>=4.45.0,<5"]
 mistral = ["mistral-common>=1.5.0,<2"]
 ollama = ["transformers>=4.45.0,<5"]
