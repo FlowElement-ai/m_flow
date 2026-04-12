@@ -109,7 +109,7 @@ postgres-binary = [
 
 # Vector stores
 chromadb = [
-    "chromadb>=0.5,<0.7",
+    "chromadb>=0.5,<1.6",
     "pypika==0.48.9",
 ]
 redis = ["redis>=5.0.0,<8.0.0"]
