@@ -71,16 +71,61 @@ def extract_anchors(sentences: List[str]) -> List[Anchor]:
 
 # ── Step 1: JSON topic routing ────────────────────────────────────────
 
+
+async def _name_single_content(text: str) -> str:
+    """Generate a short specific title for single-content input via LLM.
+
+    Uses the same Episode Naming Policy as content routing
+    (``sentence_grouping.txt``) and the original-mode naming prompt
+    (``summarize_content_text_with_naming.txt``): bounded semantic focus,
+    distinguishable anchors, no vague umbrella labels.
+
+    Used when content routing is disabled and precise mode needs a
+    meaningful Episode name from a single chunk of text.
+    """
+    system_prompt = read_query_prompt("precise_name_single_content.txt")
+    truncated = text[:800]
+    try:
+        raw = await LLMService.complete_text(truncated, system_prompt)
+        json_match = re.search(r"\{.*?\}", raw, re.DOTALL)
+        if json_match:
+            parsed = json.loads(json_match.group())
+            title = (parsed.get("title") or "").strip()
+            if title and title.lower() not in ("content", "untitled", "summary", "text"):
+                return title
+    except Exception as e:
+        logger.warning(f"[precise] Single-content naming failed: {e}")
+
+    # Heuristic fallback: first complete sentence or clause
+    m = re.split(r"(?<=[.!?])\s+(?=[A-Z])", text)
+    first_sent = m[0].strip() if m else text.strip()
+    if len(first_sent) <= 60:
+        return first_sent
+    return first_sent[:57] + "..."
+
+
 async def step1_route_sections(
     sentences: List[str],
+    generate_episode_name: bool = False,
 ) -> List[Dict]:
     """
     Ask LLM to group sentence indices into topic sections.
     Returns list of {"title": str, "sentence_indices": [int]}.
     Code assembles original text from indices — zero information loss.
+
+    Args:
+        sentences: List of text chunks to route into sections.
+        generate_episode_name: When True (content routing disabled), generate
+            a meaningful title even for single-element inputs instead of
+            the default "Content" placeholder.
     """
     if len(sentences) <= 1:
-        return [{"title": "Content", "sentence_indices": list(range(len(sentences)))}]
+        if generate_episode_name and sentences:
+            title = await _name_single_content(sentences[0])
+            logger.info(f"[precise] Single-content naming: '{title[:50]}'")
+        else:
+            title = "Content"
+        return [{"title": title, "sentence_indices": list(range(len(sentences)))}]
 
     truncated = [s[:150] + "..." if len(s) > 150 else s for s in sentences]
     numbered = "\n".join(f"[{j}] {t}" for j, t in enumerate(truncated))
@@ -185,6 +230,7 @@ async def precise_summarize_by_event(
     event_sentences: List[str],
     event_topic: str,
     session_date_header: str = "",
+    generate_episode_name: bool = False,
 ) -> List[Section]:
     """
     Two-step precise summarization.
@@ -193,6 +239,11 @@ async def precise_summarize_by_event(
     2. Code assembles original text per section (lossless).
     3. Each section is concurrently compressed by LLM.
     4. Code verifies all anchors are preserved; recovers any missing ones.
+
+    Args:
+        generate_episode_name: When True (content routing disabled), step1
+            generates a meaningful title even for single-element inputs.
+            The caller reads ``sections[0].heading`` as the Episode name.
     """
     if not event_sentences:
         return []
@@ -200,7 +251,10 @@ async def precise_summarize_by_event(
     anchors = extract_anchors(event_sentences)
     logger.info(f"[precise] Extracted {len(anchors)} anchors from {len(event_sentences)} sentences")
 
-    section_defs = await step1_route_sections(event_sentences)
+    section_defs = await step1_route_sections(
+        event_sentences,
+        generate_episode_name=generate_episode_name,
+    )
 
     async def _process_section(sec_def: Dict) -> Section:
         title = sec_def.get("title", "Untitled")

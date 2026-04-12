@@ -369,10 +369,11 @@ async def _task_generate_facets(
         for ts in doc_summaries:
             chunk_text = (ts.made_from.text or "")[:500] if ts.made_from else ""
             if chunk_text:
+                fallback_search = generated_episode_name or doc_title or "Content"
                 section_facets.append(
                     EpisodicFacetDraft(
                         facet_type="content",
-                        search_text="Content",
+                        search_text=fallback_search,
                         description=chunk_text,
                         aliases=[],
                     )

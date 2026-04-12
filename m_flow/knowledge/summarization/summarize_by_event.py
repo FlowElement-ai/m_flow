@@ -170,6 +170,7 @@ async def summarize_by_event(
                 event_sentences=event_sentences,
                 event_topic=event_topic,
                 session_date_header=session_date_header,
+                generate_episode_name=generate_episode_name,
             )
             logger.info(
                 f"[summarize_by_event] Precise mode: {len(sections)} sections"

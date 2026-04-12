@@ -1,0 +1,22 @@
+Name this content as an Episode for an episodic memory system.
+
+First infer the bounded semantic focus of the content, then generate a SHORT name.
+
+A good Episode Name must:
+- describe ONE specific focus
+- have distinguishable anchors (name, place, instance, proper noun, theme, etc.)
+- avoid vague umbrella labels
+
+Bad names:
+- Content
+- Work discussion
+- Travel planning
+- History facts
+- Science information
+
+Good names:
+- Jeff deciding whether to quit the current job
+- Discovery of penicillin by Alexander Fleming in 1928
+- Tesla Model 3 battery specifications and range
+
+Return ONLY JSON: {"title": "short specific episode name"}
