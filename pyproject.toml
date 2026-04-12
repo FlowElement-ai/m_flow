@@ -146,7 +146,7 @@ baml = ["baml-py>=0.206.0,<0.221"]
 # Framework integrations
 langchain = [
     "langsmith>=0.2.0,<1.0.0",
-    "langchain_text_splitters>=0.3.0,<1.0.0",
+    "langchain_text_splitters>=0.3.0,<2.0.0",
 ]
 llama-index = ["llama-index-core>=0.12.0,<0.13"]
 
