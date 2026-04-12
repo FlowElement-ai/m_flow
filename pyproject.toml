@@ -196,7 +196,7 @@ dev = [
     "pre-commit>=4.0.0,<5",
     "notebook>=7.0.0,<8",
     "deptry>=0.20.0,<0.21",
-    "pylint>=3.0.0,<4",
+    "pylint>=3.0.0,<5",
     "ruff>=0.9.0,<=0.14",
     "gitpython>=3.1.40,<4",
     "mkdocs-material>=9.5.0,<10",
