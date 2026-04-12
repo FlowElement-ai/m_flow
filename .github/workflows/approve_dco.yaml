@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Check DCO affirmation in PR body
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
