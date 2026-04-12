@@ -179,7 +179,7 @@ monitoring = ["sentry-sdk[fastapi]>=2.8.0,<3", "langfuse>=2.30.0,<3"]
 posthog = ["posthog>=3.5.0,<4"]
 
 # Deployment & infrastructure
-deploy = ["gunicorn>=21.0.0,<24"]
+deploy = ["gunicorn>=21.0.0,<26"]
 api = []
 distributed = ["modal>=1.0.0,<2.0.0"]
 aws = ["s3fs[boto3]>=2025.3.0,<2026"]
