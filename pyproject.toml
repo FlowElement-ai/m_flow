@@ -141,7 +141,7 @@ docling = ["docling>=2.50", "transformers>=4.50"]
 dlt = ["dlt[sqlalchemy]>=1.8.0,<2"]
 
 # Structured output
-baml = ["baml-py>=0.206.0,<0.210"]
+baml = ["baml-py>=0.206.0,<0.221"]
 
 # Framework integrations
 langchain = [
