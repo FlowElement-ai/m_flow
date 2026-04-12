@@ -189,7 +189,7 @@ notebook = ["notebook>=7.0.0,<8"]
 debug = ["debugpy>=1.8.0,<2.0.0"]
 dev = [
     "pytest>=7.4.0,<9",
-    "pytest-cov>=6.0.0,<7.0.0",
+    "pytest-cov>=6.0.0,<8.0.0",
     "pytest-asyncio>=0.21.0,<0.26",
     "coverage>=7.3.0,<8",
     "mypy>=1.7.0,<2",
