@@ -60,7 +60,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ─────────────────────────────────────────────────────────────────────────────
 # Phase B ── Slim runtime (no compiler toolchain, no uv)
 # ─────────────────────────────────────────────────────────────────────────────
-FROM python:3.12-slim-bookworm AS runner
+FROM python:3.14-slim-bookworm AS runner
 
 LABEL maintainer="M-flow Team" \
       description="M-flow backend API server" \
