@@ -160,7 +160,7 @@ coreference-full = [
 codegraph = [
     "fastembed<=0.8.0 ; python_version < '3.13'",
     "transformers>=4.45.0,<6",
-    "tree-sitter>=0.23.0,<0.25",
+    "tree-sitter>=0.23.0,<0.26",
     "tree-sitter-python>=0.23.0,<0.26",
 ]
 
