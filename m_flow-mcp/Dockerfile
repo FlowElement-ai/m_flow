@@ -1,7 +1,7 @@
 # M-flow MCP Server Image
 # Model Context Protocol server for M-flow knowledge graphs
 
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential git curl libpq-dev && \
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir /tmp/m_flow && rm -rf /tmp/m_flow
 RUN pip install --no-cache-dir ".[all]"
 
 # ── Runtime ──────────────────────────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 WORKDIR /srv/mcp
 
