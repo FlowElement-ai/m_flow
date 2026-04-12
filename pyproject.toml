@@ -176,7 +176,7 @@ evals = [
 
 # Observability
 monitoring = ["sentry-sdk[fastapi]>=2.8.0,<3", "langfuse>=2.30.0,<3"]
-posthog = ["posthog>=3.5.0,<4"]
+posthog = ["posthog>=3.5.0,<8"]
 
 # Deployment & infrastructure
 deploy = ["gunicorn>=21.0.0,<24"]
