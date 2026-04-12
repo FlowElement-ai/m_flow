@@ -112,7 +112,7 @@ chromadb = [
     "chromadb>=0.5,<0.7",
     "pypika==0.48.9",
 ]
-redis = ["redis>=5.0.0,<6.0.0"]
+redis = ["redis>=5.0.0,<8.0.0"]
 pinecone = ["pinecone>=5.0"]
 milvus = ["pymilvus>=2.4"]
 
