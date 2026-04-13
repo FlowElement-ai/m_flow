@@ -52,7 +52,7 @@ runs:
         NEO4J_PWD: ${{ inputs.neo4j-password }}
       run: |
         set -euo pipefail
-        MAX_WAIT=90
+        MAX_WAIT=120
         ELAPSED=0
         echo "Polling Neo4j readiness (max ${MAX_WAIT}s)…"
         until docker exec neo4j-test \

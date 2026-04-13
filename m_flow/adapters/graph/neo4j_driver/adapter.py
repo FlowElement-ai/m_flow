@@ -290,6 +290,16 @@ class Neo4jAdapter(GraphProvider):
         """
         return await self.query(cypher, {"ids": node_ids})
 
+    async def update_node(self, node_id: str, props: Dict[str, Any]) -> None:
+        """Merge props into an existing node (top-level property merge)."""
+        cypher = f"MATCH (n:`{_BASE_NODE_LABEL}` {{id: $nid}}) SET n += $props"
+        await self.query(cypher, {"nid": node_id, "props": props})
+
+    async def delete_edge(self, src: str, dst: str, rel: str) -> None:
+        """Remove a specific directed edge."""
+        cypher = f"MATCH (a:`{_BASE_NODE_LABEL}` {{id: $src}})-[r:`{rel}`]->(b:`{_BASE_NODE_LABEL}` {{id: $dst}}) DELETE r"
+        await self.query(cypher, {"src": src, "dst": dst})
+
     # =========================================================================
     # Edge Operations
     # =========================================================================
@@ -400,13 +410,17 @@ class Neo4jAdapter(GraphProvider):
             raise
 
     async def get_edges(self, node_id: str):
-        """Get all edges connected to a node."""
+        """Get all edges connected to a node.
+
+        Returns list of (source_node_props, relationship_name, target_node_props)
+        matching the Kuzu adapter's contract expected by all callers.
+        """
         cypher = f"""
         MATCH (n:`{_BASE_NODE_LABEL}` {{id: $nid}})-[r]-(m)
-        RETURN n, r, m
+        RETURN properties(n) AS src, TYPE(r) AS rel, properties(m) AS dst
         """
         results = await self.query(cypher, {"nid": node_id})
-        return [(r["n"]["id"], r["m"]["id"], {"relationship_name": r["r"][1]}) for r in results]
+        return [(r["src"], r["rel"], r["dst"]) for r in results]
 
     # =========================================================================
     # Graph Traversal
@@ -448,7 +462,12 @@ class Neo4jAdapter(GraphProvider):
 
     async def get_neighbors(self, node_id: str) -> List[Dict[str, Any]]:
         """Get all directly connected nodes."""
-        return await self.get_neighbours(node_id)
+        cypher = f"""
+        MATCH (n:`{_BASE_NODE_LABEL}` {{id: $nid}})-[r]-(m)
+        RETURN DISTINCT properties(m) AS props
+        """
+        results = await self.query(cypher, {"nid": node_id})
+        return [r["props"] for r in results]
 
     async def get_disconnected_nodes(self) -> list[str]:
         """Find nodes not in the largest connected component."""
@@ -473,16 +492,20 @@ class Neo4jAdapter(GraphProvider):
         return results[0]["isolated_ids"] if results else []
 
     async def get_triplets(self, node_id: UUID) -> list:
-        """Get all incoming and outgoing connections."""
+        """Get all incoming and outgoing connections.
+
+        Returns list of (source_props, edge_dict, target_props) matching
+        the Kuzu/Neptune contract.
+        """
         incoming_cypher = f"""
         MATCH (n:`{_BASE_NODE_LABEL}`)<-[r]-(nbr)
         WHERE n.id = $nid
-        RETURN nbr, r, n
+        RETURN properties(nbr) AS src, TYPE(r) AS rel, properties(r) AS rprops, properties(n) AS dst
         """
         outgoing_cypher = f"""
         MATCH (n:`{_BASE_NODE_LABEL}`)-[r]->(nbr)
         WHERE n.id = $nid
-        RETURN n, r, nbr
+        RETURN properties(n) AS src, TYPE(r) AS rel, properties(r) AS rprops, properties(nbr) AS dst
         """
 
         incoming, outgoing = await asyncio.gather(
@@ -492,11 +515,9 @@ class Neo4jAdapter(GraphProvider):
 
         connections = []
         for rec in incoming:
-            r = rec["r"]
-            connections.append((r[0], {"relationship_name": r[1]}, r[2]))
+            connections.append((rec["src"], {"relationship_name": rec["rel"], **(rec["rprops"] or {})}, rec["dst"]))
         for rec in outgoing:
-            r = rec["r"]
-            connections.append((r[0], {"relationship_name": r[1]}, r[2]))
+            connections.append((rec["src"], {"relationship_name": rec["rel"], **(rec["rprops"] or {})}, rec["dst"]))
 
         return connections
 
@@ -722,11 +743,14 @@ class Neo4jAdapter(GraphProvider):
             raise
 
     async def query_by_attributes(self, attribute_filters):
-        """Get nodes/edges filtered by attribute criteria."""
+        """Get nodes/edges filtered by attribute criteria (parameterized)."""
         where_parts = []
-        for attr, vals in attribute_filters[0].items():
-            vals_str = ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in vals)
-            where_parts.append(f"n.{attr} IN [{vals_str}]")
+        params: Dict[str, Any] = {}
+        for i, flt in enumerate(attribute_filters):
+            for attr, vals in flt.items():
+                pname = f"vals_{i}_{attr}"
+                where_parts.append(f"n.{attr} IN ${pname}")
+                params[pname] = vals
 
         where_clause = " AND ".join(where_parts)
 
@@ -734,15 +758,17 @@ class Neo4jAdapter(GraphProvider):
         MATCH (n) WHERE {where_clause}
         RETURN n.id AS id, labels(n) AS labels, properties(n) AS props
         """
-        node_results = await self.query(node_cypher)
+        node_results = await self.query(node_cypher, params)
         nodes = [(r["id"], r["props"]) for r in node_results]
 
+        edge_params = dict(params)
+        m_where = where_clause.replace("n.", "m.")
         edge_cypher = f"""
         MATCH (n)-[r]->(m)
-        WHERE {where_clause} AND {where_clause.replace("n.", "m.")}
+        WHERE {where_clause} AND {m_where}
         RETURN n.id AS src, m.id AS tgt, TYPE(r) AS type, properties(r) AS props
         """
-        edge_results = await self.query(edge_cypher)
+        edge_results = await self.query(edge_cypher, edge_params)
         edges = [
             (
                 r["props"]["source_node_id"],

@@ -424,58 +424,26 @@ async def merge_procedure_content(
             ctx_parts.append(f"Exception: {merged_context.exception_text}")
         merged_context_text = "; ".join(ctx_parts) if ctx_parts else ""
 
-        # Read-modify-write properties (known limitation: uses raw Cypher)
-        read_cypher = """
-        MATCH (n:Node {id: $id})
-        RETURN n.properties AS props
-        """
-        result = await graph_engine.query(read_cypher, {"id": target_procedure_id})
-
-        if not result:
+        node_props = await graph_engine.get_node(target_procedure_id)
+        if not node_props:
             return False
 
-        first_row = result[0]
-        if isinstance(first_row, dict):
-            props_str = first_row.get("props", "{}")
-        elif isinstance(first_row, (list, tuple)):
-            props_str = first_row[0] if first_row else "{}"
-        else:
-            props_str = str(first_row) if first_row else "{}"
-
-        try:
-            props = json.loads(props_str) if props_str else {}
-        except (json.JSONDecodeError, TypeError):
-            props = {}
-
-        # Update fields
-        props["points_text"] = merged_points
-        props["context_text"] = merged_context_text
-        props["version"] = new_version
         from datetime import datetime, timezone
 
-        props["updated_at"] = datetime.now(timezone.utc).isoformat()
-
-        # Rebuild summary
+        search_text = node_props.get("search_text", "")
         summary_parts = []
-        search_text = props.get("search_text", "")
         if merged_context_text:
             summary_parts.append(f"{search_text}: context - {merged_context_text}")
         if merged_points:
             summary_parts.append(f"{search_text}: points - {merged_points}")
-        props["summary"] = "\n".join(summary_parts) if summary_parts else search_text
 
-        # Write back
-        update_cypher = """
-        MATCH (n:Node {id: $id})
-        SET n.properties = $props
-        """
-        await graph_engine.query(
-            update_cypher,
-            {
-                "id": target_procedure_id,
-                "props": json.dumps(props, ensure_ascii=False, default=str),
-            },
-        )
+        await graph_engine.update_node(target_procedure_id, {
+            "points_text": merged_points,
+            "context_text": merged_context_text,
+            "version": new_version,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "summary": "\n".join(summary_parts) if summary_parts else search_text,
+        })
 
         logger.info(
             f"[procedural.router] Merged content into {target_procedure_id}: version {state.version} -> {new_version}"

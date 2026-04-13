@@ -704,6 +704,27 @@ class KuzuAdapter(GraphProvider):
         """Remove multiple nodes and their edges."""
         await self.query("MATCH (n:Node) WHERE n.id IN $ids DETACH DELETE n", {"ids": node_ids})
 
+    async def update_node(self, node_id: str, props: Dict[str, Any]) -> None:
+        """Merge props into an existing node's properties JSON (read-modify-write)."""
+        read_q = "MATCH (n:Node {id: $id}) RETURN n.properties AS props"
+        rows = await self.query(read_q, {"id": node_id})
+        if not rows:
+            return
+
+        existing = _parse_props_json(rows[0][0]) if rows[0][0] else {}
+        existing.update(props)
+
+        write_q = "MATCH (n:Node {id: $id}) SET n.properties = $props"
+        await self.query(write_q, {"id": node_id, "props": _dump_props(existing)})
+
+    async def delete_edge(self, src: str, dst: str, rel: str) -> None:
+        """Remove a specific directed edge."""
+        cypher = (
+            "MATCH (a:Node {id: $src})-[r:EDGE]->(b:Node {id: $dst}) "
+            "WHERE r.relationship_name = $rel DELETE r"
+        )
+        await self.query(cypher, {"src": src, "dst": dst, "rel": rel})
+
     async def extract_node(self, node_id: str) -> Optional[Dict[str, Any]]:
         """Get single node by ID."""
         cypher = """

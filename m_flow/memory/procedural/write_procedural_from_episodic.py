@@ -218,27 +218,12 @@ async def extract_procedural_from_episodic(
     graph_engine = await get_graph_provider()
 
     # Query episodes from graph using adapter-agnostic approach
-    # Kuzu uses :Node label with type property, not :Episode label
-    if episode_ids:
-        # Specific episodes requested
-        query = """
-        MATCH (e:Node)
-        WHERE e.type = 'Episode' AND e.id IN $episode_ids
-        RETURN e.id AS id, e.name AS name, e.properties AS props
-        """
-        params = {"episode_ids": episode_ids}
-    else:
-        # Query all Episode nodes (filter processed ones in Python
-        # since Kuzu stores custom properties in JSON column)
-        query = """
-        MATCH (e:Node)
-        WHERE e.type = 'Episode'
-        RETURN e.id AS id, e.name AS name, e.properties AS props
-        """
-        params = {}
-
     try:
-        results = await graph_engine.query(query, params)
+        nodes, _ = await graph_engine.query_by_attributes([{"type": ["Episode"]}])
+        if episode_ids:
+            ep_id_set = set(episode_ids)
+            nodes = [(nid, p) for nid, p in nodes if nid in ep_id_set]
+        results = nodes
     except Exception as e:
         logger.error(f"[extract_from_episodic] Query failed: {e}", exc_info=True)
         return {
@@ -260,38 +245,16 @@ async def extract_procedural_from_episodic(
     logger.info(f"[extract_from_episodic] Found {len(results)} episode candidates")
 
     # Convert episodes to FragmentDigest for procedural pipeline
-    import json as _json
-
     summaries_for_procedural: List[FragmentDigest] = []
     episode_id_list: List[str] = []
     processed_count = 0
 
-    for row in results:
-        if not row:
-            continue
-
-        # Handle different result formats
-        if isinstance(row, dict):
-            episode_id = row.get("id", "")
-            props_raw = row.get("props", "{}")
-        elif isinstance(row, (list, tuple)) and len(row) >= 3:
-            episode_id = row[0]
-            props_raw = row[2]
-        else:
-            continue
-
+    for episode_id, props in results:
         if not episode_id:
             continue
 
-        # Parse properties
-        props = {}
-        if isinstance(props_raw, str):
-            try:
-                props = _json.loads(props_raw)
-            except (ValueError, TypeError):
-                props = {}
-        elif isinstance(props_raw, dict):
-            props = props_raw
+        if not isinstance(props, dict):
+            props = {}
 
         # Get episode's dataset_id from properties
         ep_dataset_id = props.get("dataset_id")
@@ -370,42 +333,11 @@ async def extract_procedural_from_episodic(
             "nodes_written": 0,
         }
 
-    # Mark episodes as processed
-    # Kuzu stores properties in JSON column, so we need read-modify-write
+    # Mark episodes as processed via adapter update_node (handles RMW internally)
     if episode_id_list:
         for ep_id in episode_id_list:
             try:
-                read_q = """
-                MATCH (n:Node {id: $id})
-                RETURN n.properties AS props
-                """
-                read_result = await graph_engine.query(read_q, {"id": ep_id})
-                if not read_result:
-                    continue
-
-                first_row = read_result[0]
-                if isinstance(first_row, dict):
-                    props_str = first_row.get("props", "{}")
-                elif isinstance(first_row, (list, tuple)):
-                    props_str = first_row[0] if first_row else "{}"
-                else:
-                    props_str = str(first_row) if first_row else "{}"
-
-                try:
-                    ep_props = _json.loads(props_str) if props_str else {}
-                except (ValueError, TypeError):
-                    ep_props = {}
-
-                ep_props["procedural_extracted"] = True
-
-                write_q = """
-                MATCH (n:Node {id: $id})
-                SET n.properties = $props
-                """
-                await graph_engine.query(
-                    write_q,
-                    {"id": ep_id, "props": _json.dumps(ep_props, ensure_ascii=False, default=str)},
-                )
+                await graph_engine.update_node(ep_id, {"procedural_extracted": True})
                 marked += 1
             except Exception as e:
                 logger.debug(f"[extract_from_episodic] Failed to mark episode {ep_id}: {e}")

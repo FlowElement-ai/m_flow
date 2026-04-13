@@ -251,44 +251,12 @@ async def deprecate_procedure(procedure_id: str) -> bool:
     try:
         graph_engine = await get_graph_provider()
 
-        # Step 1: Read existing properties
-        read_cypher = """
-        MATCH (n:Node {id: $id})
-        RETURN n.properties AS props
-        """
-        result = await graph_engine.query(read_cypher, {"id": procedure_id})
-        if not result:
+        node_props = await graph_engine.get_node(procedure_id)
+        if not node_props:
             logger.warning(f"[procedural.incremental.write] Procedure not found for deprecation: {procedure_id}")
             return False
 
-        # Step 2: Parse and update
-        first_row = result[0]
-        if isinstance(first_row, dict):
-            props_str = first_row.get("props", "{}")
-        elif isinstance(first_row, (list, tuple)):
-            props_str = first_row[0] if first_row else "{}"
-        else:
-            props_str = str(first_row) if first_row else "{}"
-
-        try:
-            props = json.loads(props_str) if props_str else {}
-        except (json.JSONDecodeError, TypeError):
-            props = {}
-
-        props["status"] = "deprecated"
-
-        # Step 3: Write back
-        update_cypher = """
-        MATCH (n:Node {id: $id})
-        SET n.properties = $props
-        """
-        await graph_engine.query(
-            update_cypher,
-            {
-                "id": procedure_id,
-                "props": json.dumps(props, ensure_ascii=False, default=str),
-            },
-        )
+        await graph_engine.update_node(procedure_id, {"status": "deprecated"})
 
         logger.debug(f"[procedural.incremental.write] Procedure {procedure_id} marked as deprecated")
         return True

@@ -8,7 +8,6 @@ Also clears procedural_extracted marks on Episodes for clean re-extraction.
 
 from __future__ import annotations
 
-import json
 from typing import Optional
 from uuid import UUID
 
@@ -81,45 +80,28 @@ def get_prune_procedural_router() -> APIRouter:
         total_deleted = 0
         total_unmarked = 0
         cleaned = 0
-        types_in = ", ".join(f"'{t}'" for t in PROCEDURAL_NODE_TYPES)
 
         for ds in authorized:
             try:
                 await set_db_context(ds.id, ds.owner_id)
                 engine = await get_graph_provider()
 
-                count_q = f"MATCH (n:Node) WHERE n.type IN [{types_in}] RETURN count(*)"
-                count_result = await engine.query(count_q)
-                node_count = count_result[0][0] if count_result else 0
+                nodes, _ = await engine.query_by_attributes([{"type": PROCEDURAL_NODE_TYPES}])
+                node_count = len(nodes)
 
                 if node_count == 0:
                     continue
 
-                del_edges_q = (
-                    f"MATCH (n:Node)-[r]->(m:Node) WHERE n.type IN [{types_in}] OR m.type IN [{types_in}] DELETE r"
-                )
-                await engine.query(del_edges_q)
-
-                del_nodes_q = f"MATCH (n:Node) WHERE n.type IN [{types_in}] DELETE n"
-                await engine.query(del_nodes_q)
+                node_ids = [n[0] for n in nodes]
+                await engine.delete_nodes(node_ids)
 
                 total_deleted += node_count
 
-                ep_q = "MATCH (e:Node) WHERE e.type = 'Episode' RETURN e.id, e.properties"
-                episodes = await engine.query(ep_q)
-                for ep in episodes or []:
-                    ep_id = ep[0]
-                    props_raw = ep[1] if len(ep) > 1 else None
-                    try:
-                        props = json.loads(props_raw) if isinstance(props_raw, str) else (props_raw or {})
-                    except (json.JSONDecodeError, TypeError):
-                        continue
+                ep_nodes, _ = await engine.query_by_attributes([{"type": ["Episode"]}])
+                for ep_id, ep_props in ep_nodes:
+                    props = ep_props if isinstance(ep_props, dict) else {}
                     if props.get("procedural_extracted"):
-                        props.pop("procedural_extracted", None)
-                        await engine.query(
-                            "MATCH (n:Node {id: $id}) SET n.properties = $props",
-                            {"id": ep_id, "props": json.dumps(props, ensure_ascii=False, default=str)},
-                        )
+                        await engine.update_node(ep_id, {"procedural_extracted": None})
                         total_unmarked += 1
 
                 cleaned += 1

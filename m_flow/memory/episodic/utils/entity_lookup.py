@@ -44,27 +44,12 @@ async def find_existing_entities_by_canonical_name(
     try:
         graph_engine = await get_graph_provider()
 
-        # Query for entities with matching canonical_name
-        # Using properties.canonical_name since canonical_name is stored in properties
-        query = """
-        MATCH (n:Node)
-        WHERE n.type IN ['Entity', 'Entity']
-        RETURN n.id AS id, n.name AS name, n.properties AS properties
-        """
-
-        results = await graph_engine.query(query)
+        nodes, _ = await graph_engine.query_by_attributes([{"type": ["Entity"]}])
 
         matching_entities = []
-        for row in results:
-            # Handle both tuple and dict results
-            if isinstance(row, tuple):
-                entity_id = str(row[0])
-                entity_name = row[1]
-                props_raw = row[2]
-            else:
-                entity_id = str(row.get("id", ""))
-                entity_name = row.get("name", "")
-                props_raw = row.get("properties", {})
+        for entity_id, props_raw in nodes:
+            entity_id = str(entity_id)
+            entity_name = props_raw.get("name", "") if isinstance(props_raw, dict) else ""
 
             # Parse properties
             props = props_raw
@@ -121,28 +106,14 @@ async def batch_find_existing_entities_by_canonical_names(
     try:
         graph_engine = await get_graph_provider()
 
-        # Single query to get all Entities
-        query = """
-        MATCH (n:Node)
-        WHERE n.type IN ['Entity', 'Entity']
-        RETURN n.id AS id, n.name AS name, n.properties AS properties
-        """
-
-        results = await graph_engine.query(query)
+        nodes, _ = await graph_engine.query_by_attributes([{"type": ["Entity"]}])
 
         # Group by canonical_name
         result_map: Dict[str, List[Dict[str, Any]]] = {cn: [] for cn in canonical_names}
 
-        for row in results:
-            # Handle both tuple and dict results
-            if isinstance(row, tuple):
-                entity_id = str(row[0])
-                entity_name = row[1]
-                props_raw = row[2]
-            else:
-                entity_id = str(row.get("id", ""))
-                entity_name = row.get("name", "")
-                props_raw = row.get("properties", {})
+        for entity_id, props_raw in nodes:
+            entity_id = str(entity_id)
+            entity_name = props_raw.get("name", "") if isinstance(props_raw, dict) else ""
 
             # Skip excluded IDs
             if entity_id in exclude_set:

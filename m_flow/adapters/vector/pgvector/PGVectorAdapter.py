@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import Any, List, Optional, get_type_hints
+from typing import Any, List, Optional
+from uuid import UUID as _PyUUID
 
 from asyncpg import DeadlockDetectedError, DuplicateTableError, UniqueViolationError
 from sqlalchemy import JSON, Column, MetaData, Table, delete, func, select
@@ -140,7 +141,6 @@ class PGVectorAdapter(SQLAlchemyAdapter, VectorProvider):
     )
     async def create_collection(self, collection_name: str, payload_schema=None) -> None:
         """创建向量集合"""
-        type_hints = get_type_hints(MemoryNode)
         vec_dim = self.embedding_engine.get_vector_size()
 
         exists = await self.has_collection(collection_name)
@@ -158,7 +158,7 @@ class PGVectorAdapter(SQLAlchemyAdapter, VectorProvider):
                 __tablename__ = collection_name
                 __table_args__ = {"extend_existing": True}
 
-                id: Mapped[type_hints["id"]] = mapped_column(primary_key=True)
+                id: Mapped[_PyUUID] = mapped_column(primary_key=True)
                 payload = Column(JSON)
                 vector = Column(self.Vector(vec_dim))
 
@@ -181,8 +181,6 @@ class PGVectorAdapter(SQLAlchemyAdapter, VectorProvider):
         """创建或更新内存节点"""
         if not memory_nodes:
             return
-
-        type_hints = get_type_hints(MemoryNode)
 
         if not await self.has_collection(collection_name):
             await self.create_collection(
@@ -224,7 +222,7 @@ class PGVectorAdapter(SQLAlchemyAdapter, VectorProvider):
             __tablename__ = collection_name
             __table_args__ = {"extend_existing": True}
 
-            id: Mapped[type_hints["id"]] = mapped_column(primary_key=True)
+            id: Mapped[_PyUUID] = mapped_column(primary_key=True)
             payload = Column(JSON)
             vector = Column(self.Vector(vec_dim))
 

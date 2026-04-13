@@ -178,80 +178,36 @@ async def delete_node_by_id(
     _log.info(f"[delete] Deleted {node_type} node: {node_id}")
 
     if cascade:
-        if node_type == "Episode":
-            # Safety: only clean up degree-0 orphan Facets under current dataset
-            # Note: dataset_id is stored in properties JSON, not a direct column
-            # Kuzu returns NULL for non-existent properties, WHERE NULL = $x is always false (silent failure)
-            # So use Python-layer filtering, consistent with learn.py/get_graph_router.py pattern
-            orphan_facet_query = """
-            MATCH (f:Node {type: "Facet"})
-            WITH f, COUNT { MATCH (f)--() } as degree
-            WHERE degree = 0
-            RETURN f.id as id
-            """
-            orphan_result = await graph.query(orphan_facet_query)
-            for row in orphan_result or []:
-                fid = row[0] if row else None
-                if fid:
-                    # Python-layer filtering of dataset_id (extracted from properties JSON)
-                    node = await graph.get_node(fid)
-                    if not node:
-                        _log.warning(f"[delete] Skipping orphan Facet {fid}: node not found")
-                        continue
-                    facet_dataset_id = node.get("dataset_id")
-                    if facet_dataset_id != str(dataset_id):
-                        _log.debug(f"[delete] Skipping orphan Facet {fid}: belongs to {facet_dataset_id}")
-                        continue  # Skip Facets not belonging to target dataset
-                    await graph.delete_node(fid)
-                    deleted_ids.append(fid)
-                    _log.info(f"[delete] Cascade deleted orphan Facet: {fid}")
+        # Provider-agnostic orphan cleanup using get_graph_data (no raw Cypher).
+        nodes_all, edges_all = await graph.get_graph_data()
 
-            orphan_point_query = """
-            MATCH (fp:Node {type: "FacetPoint"})
-            WITH fp, COUNT { MATCH (fp)--() } as degree
-            WHERE degree = 0
-            RETURN fp.id as id
-            """
-            orphan_fp_result = await graph.query(orphan_point_query)
-            for row in orphan_fp_result or []:
-                fpid = row[0] if row else None
-                if fpid:
-                    await graph.delete_node(fpid)
-                    deleted_ids.append(fpid)
-                    _log.info(f"[delete] Cascade deleted orphan FacetPoint: {fpid}")
+        connected: set[str] = set()
+        for src, tgt, _, _ in edges_all:
+            connected.add(src)
+            connected.add(tgt)
 
-            for entity_type in ["Entity", "Entity"]:
-                orphan_entity_query = f"""
-                MATCH (e:Node {{type: "{entity_type}"}})
-                WITH e, COUNT {{ MATCH (e)--() }} as degree
-                WHERE degree = 0
-                RETURN e.id as id
-                """
-                orphan_entity_result = await graph.query(orphan_entity_query)
-                for row in orphan_entity_result or []:
-                    eid = row[0] if row else None
-                    if eid:
-                        await graph.delete_node(eid)
-                        deleted_ids.append(eid)
-                        _log.info(f"[delete] Cascade deleted orphan {entity_type}: {eid}")
+        orphan_types = (
+            ["Facet", "FacetPoint", "Entity"]
+            if node_type == "Episode"
+            else ["FacetPoint"] if node_type == "Facet"
+            else []
+        )
 
-        elif node_type == "Facet":
-            # FacetPoints don't have dataset_id, but only become orphaned after associated Facet is deleted
-            # For safety, only clean up FacetPoints that were associated with current dataset's Facets
-            # Since FacetPoints don't have dataset_id, can only determine by degree = 0
-            orphan_point_query = """
-            MATCH (fp:Node {type: "FacetPoint"})
-            WITH fp, COUNT { MATCH (fp)--() } as degree
-            WHERE degree = 0
-            RETURN fp.id as id
-            """
-            orphan_result = await graph.query(orphan_point_query)
-            for row in orphan_result or []:
-                fpid = row[0] if row else None
-                if fpid:
-                    await graph.delete_node(fpid)
-                    deleted_ids.append(fpid)
-                    _log.info(f"[delete] Cascade deleted orphan FacetPoint: {fpid}")
+        for nid, nprops in nodes_all:
+            if nid in connected:
+                continue
+            ntype = nprops.get("type", "")
+            if ntype not in orphan_types:
+                continue
+
+            if ntype == "Facet":
+                nds = nprops.get("dataset_id")
+                if nds and nds != str(dataset_id):
+                    continue
+
+            await graph.delete_node(nid)
+            deleted_ids.append(nid)
+            _log.info(f"[delete] Cascade deleted orphan {ntype}: {nid}")
 
     uuid_list: list[UUID] = []
     for nid in deleted_ids:

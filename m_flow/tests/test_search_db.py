@@ -106,9 +106,9 @@ async def main():
         f"Expected exactly one MflowUserInteraction node, but found {type_counts.get('MflowUserInteraction', 0)}"
     )
 
-    # Assert there is exactly one MemorySpace.
-    assert type_counts.get("MemorySpace", 0) == 1, (
-        f"Expected exactly one MemorySpace node, but found {type_counts.get('MemorySpace', 0)}"
+    # Assert at least one MemorySpace exists (Episodic + Procedural create separate instances).
+    assert type_counts.get("MemorySpace", 0) >= 1, (
+        f"Expected at least one MemorySpace node, but found {type_counts.get('MemorySpace', 0)}"
     )
 
     # Assert that there are at least 5 'used_graph_element_to_answer' edges.

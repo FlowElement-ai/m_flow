@@ -115,24 +115,20 @@ class MigrationStats:
 
 async def fetch_all_facets(graph_engine) -> List[Dict]:
     """Fetch all Facet nodes from the graph."""
-    query = """
-    MATCH (n:Node)
-    WHERE n.type = "Facet"
-    RETURN n.id, n.name, n.properties
-    """
     try:
-        results = await graph_engine.query(query)
+        nodes, _edges = await graph_engine.query_by_attributes([{"type": ["Facet"]}])
         facets = []
-        for row in results:
-            fid = row[0]
-            fname = row[1]
-            props = row[2] if len(row) > 2 else {}
-            if isinstance(props, str):
+        for node_id, props in nodes:
+            props = dict(props) if props else {}
+            inner = props.get("properties", {})
+            if isinstance(inner, str):
                 try:
-                    props = json.loads(props)
+                    inner = json.loads(inner)
                 except (json.JSONDecodeError, TypeError):
-                    props = {}
-            facets.append({"id": str(fid), "name": str(fname) if fname else "", **props})
+                    inner = {}
+            if isinstance(inner, dict):
+                props.update(inner)
+            facets.append({"id": str(node_id), "name": str(props.get("name", "")), **props})
         return facets
     except Exception as e:
         logger.error(f"Failed to fetch facets: {e}")
@@ -141,16 +137,15 @@ async def fetch_all_facets(graph_engine) -> List[Dict]:
 
 async def fetch_existing_point_search_texts(graph_engine, facet_id: str) -> Set[str]:
     """Fetch existing FacetPoint search_texts under a Facet."""
-    query = """
-    MATCH (f:Node)-[r:EDGE]->(p:Node)
-    WHERE f.id = $facet_id AND r.relationship_name = "has_point" AND p.type = "FacetPoint"
-    RETURN p.properties
-    """
     try:
-        results = await graph_engine.query(query, {"facet_id": facet_id})
+        edges = await graph_engine.get_edges(facet_id)
         existing = set()
-        for row in results:
-            props = row[0]
+        for _src_props, rel_name, dst_props in edges:
+            if rel_name != "has_point":
+                continue
+            if not isinstance(dst_props, dict) or dst_props.get("type") != "FacetPoint":
+                continue
+            props = dst_props.get("properties", {})
             if isinstance(props, str):
                 try:
                     props = json.loads(props)
@@ -213,18 +208,15 @@ async def migrate_aliases_to_facet_points(
         return stats
 
     # Fetch Episodic MemorySpace
-    nodeset_query = """
-    MATCH (n:Node)
-    WHERE n.type = "MemorySpace" AND n.name = "Episodic"
-    RETURN n.id
-    """
     try:
-        ns_results = await graph_engine.query(nodeset_query)
-        if not ns_results:
+        ns_nodes, _ns_edges = await graph_engine.query_by_attributes(
+            [{"type": ["MemorySpace"], "name": ["Episodic"]}]
+        )
+        if not ns_nodes:
             logger.warning("Episodic MemorySpace not found, will skip memory_spaces")
             episodic_nodeset = None
         else:
-            episodic_nodeset = MemorySpace(id=str(ns_results[0][0]), name="Episodic")
+            episodic_nodeset = MemorySpace(id=str(ns_nodes[0][0]), name="Episodic")
     except Exception as e:
         logger.warning(f"Failed to fetch Episodic MemorySpace: {e}")
         episodic_nodeset = None

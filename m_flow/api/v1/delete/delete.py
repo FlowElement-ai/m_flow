@@ -251,49 +251,83 @@ async def _cleanup_orphan_episodic_nodes(graph) -> list[str]:
     This function finds nodes that became orphans as a result and removes
     them together with their vector-store entries.
 
+    Provider-agnostic: uses only ``get_graph_data`` / ``delete_node``
+    from the abstract ``GraphProvider`` interface — works for Kuzu, Neo4j,
+    Neptune, and any future backend.
+
     Returns list of deleted node IDs (strings).
     """
     purged: list[str] = []
 
-    # Step 1: Facets with no remaining supported_by edges → delete their FacetPoints first
-    orphan_facets = await graph.query(
-        "MATCH (f:Node) WHERE f.type = 'Facet' "
-        "AND NOT EXISTS { MATCH (f)-[r:EDGE]->() WHERE r.relationship_name = 'supported_by' } "
-        "RETURN f"
-    )
-    for row in orphan_facets:
-        facet = row[0]
-        fid = str(facet["id"])
+    nodes, edges = await graph.get_graph_data()
+
+    # Build outgoing edge index: node_id → [(relationship_name, target_id)]
+    outgoing: dict[str, list[tuple[str, str]]] = {}
+    for src, tgt, rel, _ in edges:
+        outgoing.setdefault(src, []).append((rel, tgt))
+
+    node_type_map = {nid: props.get("type", "") for nid, props in nodes}
+
+    # Step 1: Facets with no remaining supported_by edges → delete FacetPoints first
+    for nid, props in nodes:
+        if props.get("type") != "Facet":
+            continue
+        if any(r == "supported_by" for r, _ in outgoing.get(nid, [])):
+            continue
 
         # Delete child FacetPoints
-        fps = await graph.query(
-            "MATCH (f:Node)-[r:EDGE]->(fp:Node) "
-            "WHERE f.id = $id AND r.relationship_name = 'has_point' AND fp.type = 'FacetPoint' "
-            "RETURN fp",
-            {"id": fid},
-        )
-        for fp_row in fps:
-            fp_id = str(fp_row[0]["id"])
-            await graph.delete_node(fp_id)
-            purged.append(fp_id)
+        for rel, tgt in outgoing.get(nid, []):
+            if rel == "has_point" and node_type_map.get(tgt) == "FacetPoint":
+                await graph.delete_node(tgt)
+                purged.append(tgt)
 
-        # Delete the Facet itself
-        await graph.delete_node(fid)
-        purged.append(fid)
+        await graph.delete_node(nid)
+        purged.append(nid)
 
     # Step 2: Episodes with no remaining includes_chunk edges
-    orphan_episodes = await graph.query(
-        "MATCH (e:Node) WHERE e.type = 'Episode' "
-        "AND NOT EXISTS { MATCH (e)-[r:EDGE]->() WHERE r.relationship_name = 'includes_chunk' } "
-        "RETURN e"
-    )
-    for row in orphan_episodes:
-        eid = str(row[0]["id"])
-        await graph.delete_node(eid)
-        purged.append(eid)
+    for nid, props in nodes:
+        if props.get("type") != "Episode":
+            continue
+        if any(r == "includes_chunk" for r, _ in outgoing.get(nid, [])):
+            continue
+
+        await graph.delete_node(nid)
+        purged.append(nid)
 
     if purged:
         _log.info("Cleaned %d orphan episodic nodes (Facet/FacetPoint/Episode)", len(purged))
+
+    return purged
+
+
+async def _cleanup_isolated_nodes(graph) -> list[str]:
+    """Remove completely disconnected nodes (degree 0).
+
+    After document and episodic cleanup, system-level nodes such as
+    MemorySpace, RelationType, or EntityType may lose all edges and
+    become isolated.  This phase garbage-collects them.
+
+    Provider-agnostic: re-reads the graph after episodic cleanup so that
+    newly-isolated nodes are detected regardless of backend.
+
+    Returns list of deleted node IDs (strings).
+    """
+    purged: list[str] = []
+
+    nodes, edges = await graph.get_graph_data()
+
+    connected: set[str] = set()
+    for src, tgt, _, _ in edges:
+        connected.add(src)
+        connected.add(tgt)
+
+    for nid, _ in nodes:
+        if nid not in connected:
+            await graph.delete_node(nid)
+            purged.append(nid)
+
+    if purged:
+        _log.info("Cleaned %d isolated nodes (MemorySpace, RelationType, etc.)", len(purged))
 
     return purged
 
@@ -319,6 +353,13 @@ async def delete_single_document(
     graph = await get_graph_provider()
     orphan_ids = await _cleanup_orphan_episodic_nodes(graph)
     for oid in orphan_ids:
+        converted = _convert_to_uuid(oid)
+        if converted is not None:
+            uuid_list.append(converted)
+
+    # Phase 3: Clean completely isolated nodes (MemorySpace, RelationType, etc.)
+    isolated_ids = await _cleanup_isolated_nodes(graph)
+    for oid in isolated_ids:
         converted = _convert_to_uuid(oid)
         if converted is not None:
             uuid_list.append(converted)

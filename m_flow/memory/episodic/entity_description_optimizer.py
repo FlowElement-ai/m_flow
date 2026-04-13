@@ -155,26 +155,26 @@ async def optimize_merged_descriptions(
 
     graph = await get_graph_provider()
 
-    # Query for all Entity nodes (type='Entity' or type='Entity' for backward compatibility)
-    if episode_ids:
-        # Limit to specific episodes
-        query = """
-            MATCH (e:Node)-[:EDGE {relationship_name: 'involves_entity'}]->(c:Node)
-            WHERE e.type = 'Episode' AND c.type IN ['Entity', 'Entity'] AND e.id IN $episode_ids
-            RETURN DISTINCT c.id, c.name, c.description, c.entity_type, c.merge_count
-        """
-        params = {"episode_ids": episode_ids}
-    else:
-        # All Entities
-        query = """
-            MATCH (c:Node)
-            WHERE c.type IN ['Entity', 'Entity']
-            RETURN c.id, c.name, c.description, c.entity_type, c.merge_count
-        """
-        params = {}
-
+    # Query for all Entity nodes via abstract graph API
     try:
-        results = await graph.query(query, params)
+        if episode_ids:
+            # Get entities connected to specified episodes via edge traversal
+            seen_entity_ids: set = set()
+            entity_nodes: List[Dict[str, Any]] = []
+            for ep_id in episode_ids:
+                edges = await graph.get_edges(ep_id)
+                for _src_props, rel_name, dst_props in edges:
+                    if (
+                        rel_name == "involves_entity"
+                        and dst_props.get("type") == "Entity"
+                        and dst_props.get("id") not in seen_entity_ids
+                    ):
+                        seen_entity_ids.add(dst_props["id"])
+                        entity_nodes.append(dst_props)
+        else:
+            # All Entity nodes
+            nodes, _edges = await graph.query_by_attributes([{"type": ["Entity"]}])
+            entity_nodes = [props for _nid, props in nodes]
     except Exception as e:
         logger.error(f"[optimizer] Failed to query entities: {e}")
         return stats
@@ -182,14 +182,14 @@ async def optimize_merged_descriptions(
     # Collect entities needing optimization
     entities_to_optimize: List[Dict[str, Any]] = []
 
-    for row in results:
+    for node in entity_nodes:
         stats.total_entities_scanned += 1
 
-        entity_id = row[0]
-        name = row[1]
-        description = row[2] or ""
-        entity_type = row[3] or "Thing"
-        merge_count = row[4] or 0
+        entity_id = node.get("id")
+        name = node.get("name")
+        description = node.get("description") or ""
+        entity_type = node.get("entity_type") or "Thing"
+        merge_count = node.get("merge_count") or 0
 
         # Check if needs optimization
         num_roles = count_context_roles(description)
@@ -240,41 +240,28 @@ async def optimize_merged_descriptions(
 
         try:
             # 1. Update Entity node description
-            update_node_query = """
-                MATCH (c:Node)
-                WHERE c.id = $entity_id
-                SET c.description = $description, c.optimized = true
-            """
-            await graph.query(
-                update_node_query,
-                {
-                    "entity_id": entity_id,
-                    "description": optimized,
-                },
-            )
+            await graph.update_node(entity_id, {"description": optimized, "optimized": True})
 
             # 2. Query all involves_entity edges pointing TO this entity
-            # Need to distinguish Episode→Entity vs Facet→Entity for correct edge_text format
-            edge_query = """
-                MATCH (src:Node)-[r:EDGE]->(c:Node)
-                WHERE c.id = $entity_id AND r.relationship_name = 'involves_entity'
-                RETURN src.id, src.type, src.search_text, r.edge_text
-            """
-            edge_results = await graph.query(edge_query, {"entity_id": entity_id})
+            # Uses abstract get_edges + Python filter for 'involves_entity'
+            all_edges = await graph.get_edges(entity_id)
+            edge_results = [
+                (_src, _rel, dst)
+                for _src, _rel, dst in all_edges
+                if _rel == "involves_entity"
+            ]
 
             if not edge_results:
                 logger.debug(f"[optimizer] No edges found for entity '{entity_name}'")
-                # Still mark as success since node was updated
                 return True
 
             # 3. Update each edge with appropriate edge_text format
             updated_edge_texts: List[str] = []
 
-            for row in edge_results:
-                src_id = row[0]
-                src_type = row[1] or ""
-                src_search_text = row[2] or ""
-                # row[3] is old_edge_text, not needed for new edge generation
+            for _entity_props, _rel_name, neighbor_props in edge_results:
+                src_id = neighbor_props.get("id")
+                src_type = neighbor_props.get("type") or ""
+                src_search_text = neighbor_props.get("search_text") or ""
 
                 # Generate appropriate edge_text based on source node type
                 if src_type == "Facet":
@@ -288,7 +275,8 @@ async def optimize_merged_descriptions(
                     # Episode → Entity: standard format
                     new_edge_text = f"{entity_name} | {truncated_desc}"
 
-                # Update the edge
+                # Update the edge — raw query() required: no abstract method
+                # exists for edge property updates.  Backend-specific Cypher.
                 update_single_edge_query = """
                     MATCH (src:Node)-[r:EDGE]->(c:Node)
                     WHERE src.id = $src_id AND c.id = $entity_id 

@@ -99,7 +99,11 @@ jobs:
       - name: "Run migration against ${{ matrix.engine }} backend"
         env:
           GRAPH_DATABASE_PROVIDER: ${{ matrix.graph_provider }}
-        run: uv run python ./m_flow/tests/test_relational_db_migration.py
+        run: |
+          if [ -z "$GRAPH_DATABASE_PROVIDER" ]; then
+            unset GRAPH_DATABASE_PROVIDER
+          fi
+          uv run python ./m_flow/tests/test_relational_db_migration.py
 
   # ── Neo4j migration (standalone — requires neo4j setup action) ─────────
   migration-neo4j-engine:

@@ -23,8 +23,9 @@ _log = get_logger()
 # ---------------------------------------------------------------------------
 
 NodeProps = Dict[str, Any]
-EdgeTuple = Tuple[str, str, str, Dict[str, Any]]  # (src_id, dst_id, rel, props)
+EdgeTuple = Tuple[str, str, str, Dict[str, Any]]  # (src_id, dst_id, rel, props) — used by get_graph_data / add_edges
 NodeTuple = Tuple[str, NodeProps]  # (node_id, props)
+EdgeTriple = Tuple[NodeProps, str, NodeProps]  # (src_props, rel_name, dst_props) — used by get_edges
 
 # ---------------------------------------------------------------------------
 # Decorator for ledger tracking
@@ -213,8 +214,20 @@ class GraphProvider(ABC):
         ...
 
     @abstractmethod
-    async def get_edges(self, node_id: str) -> List[EdgeTuple]:
-        """Get all edges connected to a node."""
+    async def get_edges(self, node_id: str) -> List[EdgeTriple]:
+        """Get all edges connected to a node.
+
+        Returns:
+            List of ``(source_node_props, relationship_name, target_node_props)``.
+            Both source and target are property dicts with at least
+            ``id``, ``type``, ``name`` keys.
+
+        .. note::
+
+           This returns :pydata:`EdgeTriple` (3-tuple with full node dicts),
+           **not** :pydata:`EdgeTuple` (4-tuple with string IDs used by
+           :meth:`get_graph_data` and :meth:`add_edges`).
+        """
         ...
 
     # -------------------------------------------------------------------------
@@ -239,7 +252,7 @@ class GraphProvider(ABC):
     @abstractmethod
     async def query_by_attributes(
         self,
-        filters: List[Dict[str, List[Union[str, int]]]],
+        attribute_filters: List[Dict[str, List[Union[str, int]]]],
     ) -> Tuple[List[NodeTuple], List[EdgeTuple]]:
         """Return nodes/edges matching attribute filters."""
         ...
@@ -269,6 +282,50 @@ class GraphProvider(ABC):
     ) -> Tuple[List[Tuple[int, dict]], List[Tuple[int, int, str, dict]]]:
         """Extract a subgraph for a set of named nodes."""
         ...
+
+    # -------------------------------------------------------------------------
+    # Extended CRUD (default implementations; adapters should override)
+    # -------------------------------------------------------------------------
+
+    async def update_node(self, node_id: str, props: Dict[str, Any]) -> None:
+        """Merge *props* into an existing node's properties.
+
+        The semantics are **merge** (patch), not replace: keys present in
+        *props* overwrite existing values; keys absent from *props* are
+        retained.
+
+        Default implementation: read-modify-write via :meth:`get_node` +
+        :meth:`query`.  Adapters should override with a native single-query
+        implementation for atomicity and performance.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement update_node; "
+            "use query() with backend-specific Cypher as a workaround."
+        )
+
+    async def delete_edge(self, src: str, dst: str, rel: str) -> None:
+        """Remove a specific directed edge between two nodes.
+
+        Default: not implemented.  Adapters should override.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement delete_edge; "
+            "use query() with backend-specific Cypher as a workaround."
+        )
+
+    async def get_document_subgraph(self, data_id: str) -> Optional[Dict[str, list]]:
+        """Return the subgraph rooted at a document node for deletion.
+
+        Expected keys in the returned dict: ``document``, ``chunks``,
+        ``orphan_entities``, ``made_from_nodes``, ``orphan_types``.
+        Returns ``None`` when the document is not found.
+
+        Default: not implemented.  All current adapters (Kuzu, Neo4j,
+        Neptune) already provide this method.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement get_document_subgraph."
+        )
 
     # -------------------------------------------------------------------------
     # Persistence / WAL management (optional)

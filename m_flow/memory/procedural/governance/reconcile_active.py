@@ -45,21 +45,8 @@ class ActiveReconciler:
         Returns:
             ReconcileResult
         """
-        # Query all procedures with same key
-        query = f"""
-        MATCH (p:Node)
-        WHERE p.type = 'Procedure'
-          AND (p.properties.signature = '{procedure_key}' 
-               OR p.properties.procedure_key = '{procedure_key}')
-        RETURN p.id AS id, 
-               p.properties.version AS version,
-               p.properties.status AS status,
-               p.properties.updated_at AS updated_at
-        ORDER BY p.properties.version DESC
-        """
-
         try:
-            rows = await graph_engine.query(query)
+            all_nodes, _ = await graph_engine.query_by_attributes([{"type": ["Procedure"]}])
         except Exception as e:
             logger.error(f"Failed to query procedures for key={procedure_key}: {e}")
             return ReconcileResult(
@@ -67,6 +54,17 @@ class ActiveReconciler:
                 deactivated_count=0,
                 active_id=None,
             )
+
+        rows = []
+        for nid, props in all_nodes:
+            p = props if isinstance(props, dict) else {}
+            if p.get("signature") == procedure_key or p.get("procedure_key") == procedure_key:
+                rows.append({
+                    "id": nid,
+                    "version": p.get("version"),
+                    "status": p.get("status"),
+                    "updated_at": p.get("updated_at"),
+                })
 
         if not rows:
             return ReconcileResult(
@@ -88,27 +86,16 @@ class ActiveReconciler:
         for row in rows_sorted[1:]:
             proc_id = row.get("id")
             if row.get("status") == "active":
-                # Update to superseded
-                update_query = f"""
-                MATCH (p:Node)
-                WHERE p.id = '{proc_id}'
-                SET p.properties.status = 'superseded'
-                """
                 try:
-                    await graph_engine.query(update_query)
+                    await graph_engine.update_node(proc_id, {"status": "superseded"})
                     deactivated_count += 1
                 except Exception as e:
                     logger.error(f"Failed to deactivate procedure {proc_id}: {e}")
 
         # Ensure active version status is correct
         if active_row.get("status") != "active":
-            update_query = f"""
-            MATCH (p:Node)
-            WHERE p.id = '{active_id}'
-            SET p.properties.status = 'active'
-            """
             try:
-                await graph_engine.query(update_query)
+                await graph_engine.update_node(active_id, {"status": "active"})
             except Exception as e:
                 logger.error(f"Failed to activate procedure {active_id}: {e}")
 

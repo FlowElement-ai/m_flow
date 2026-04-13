@@ -53,7 +53,7 @@ async def _migrate_and_verify():
 
     db_provider = engine.engine.dialect.name
     rel_label = "reports_to" if db_provider == "postgresql" else "ReportsTo"
-    graph_provider = os.getenv("GRAPH_DATABASE_PROVIDER", "networkx").lower()
+    graph_provider = (os.getenv("GRAPH_DATABASE_PROVIDER") or "networkx").lower()
 
     nodes_set = set()
     edges_set = set()
@@ -128,7 +128,7 @@ async def _test_schema_only():
     )
     assert any("11" in r for r in results)
 
-    graph_provider = os.getenv("GRAPH_DATABASE_PROVIDER", "networkx").lower()
+    graph_provider = (os.getenv("GRAPH_DATABASE_PROVIDER") or "networkx").lower()
     counts = {"is_part_of": 0, "has_relationship": 0, "foreign_key": 0}
 
     if graph_provider == "networkx":
@@ -137,9 +137,9 @@ async def _test_schema_only():
             if k in counts:
                 counts[k] += 1
 
-    expected = {"is_part_of": 11, "has_relationship": 22, "foreign_key": 11}
-    for k, v in expected.items():
-        assert counts[k] == v, f"{k}: 期望{v}, 实际{counts[k]}"
+        expected = {"is_part_of": 11, "has_relationship": 22, "foreign_key": 11}
+        for k, v in expected.items():
+            assert counts[k] == v, f"{k}: 期望{v}, 实际{counts[k]}"
 
     print("模式迁移验证通过")
 

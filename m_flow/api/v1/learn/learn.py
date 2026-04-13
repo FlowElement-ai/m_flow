@@ -166,46 +166,25 @@ async def fetch_episodes_from_graph(
                     logger.warning(f"[learn] Failed to fetch episode {ep_id}: {e}")
         else:
             # Query all Episode nodes that haven't been processed yet
-            # Use raw query since there's no adapter method for type-based search
             try:
-                query = """
-                MATCH (n:Node)
-                WHERE n.type = 'Episode'
-                RETURN n.id AS id, n.name AS name, n.properties AS props
-                """
-                results = await graph_engine.query(query, {})
+                nodes, _ = await graph_engine.query_by_attributes([{"type": ["Episode"]}])
 
-                for row in results:
-                    if not row:
-                        continue
-
-                    # Handle different result formats
-                    if isinstance(row, dict):
-                        node_id = row.get("id", "")
-                        name = row.get("name", "")
-                        props_raw = row.get("props", "{}")
-                    elif isinstance(row, (list, tuple)) and len(row) >= 3:
-                        node_id = row[0]
-                        name = row[1]
-                        props_raw = row[2]
-                    else:
-                        continue
-
+                for node_id, props in nodes:
                     if not node_id:
                         continue
 
-                    # Parse properties
+                    # Parse properties if stored as JSON string
                     import json as _json
 
-                    props = {}
-                    if isinstance(props_raw, str):
+                    if isinstance(props, str):
                         try:
-                            props = _json.loads(props_raw)
+                            props = _json.loads(props)
                         except (ValueError, TypeError):
                             props = {}
-                    elif isinstance(props_raw, dict):
-                        props = props_raw
+                    elif not isinstance(props, dict):
+                        props = {}
 
+                    name = props.get("name", "")
                     summary = props.get("summary", "")
 
                     # Check if already has derived_procedure edge

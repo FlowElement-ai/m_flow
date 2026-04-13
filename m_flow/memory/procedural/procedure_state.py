@@ -374,40 +374,12 @@ async def find_active_version_by_signature(
         ProcedureState if found, None otherwise
     """
     try:
-        # Use raw query since there's no adapter method for property search
-        # Kuzu stores properties in JSON column, so we need to search there
-        cypher = """
-        MATCH (n:Node)
-        WHERE n.type = 'Procedure'
-        RETURN n.id AS id, n.properties AS props
-        """
-        results = await graph_engine.query(cypher, {})
+        nodes, _ = await graph_engine.query_by_attributes([{"type": ["Procedure"]}])
 
-        for row in results:
-            if not row:
+        for node_id, props in nodes:
+            if not props:
                 continue
 
-            # Handle different result formats
-            if isinstance(row, dict):
-                node_id = row.get("id", "")
-                props_str = row.get("props", "{}")
-            elif isinstance(row, (list, tuple)) and len(row) >= 2:
-                node_id = row[0]
-                props_str = row[1]
-            else:
-                continue
-
-            # Parse properties
-            props = {}
-            if isinstance(props_str, str):
-                try:
-                    props = json.loads(props_str)
-                except (json.JSONDecodeError, TypeError):
-                    continue
-            elif isinstance(props_str, dict):
-                props = props_str
-
-            # Check signature match and active status
             node_sig = props.get("signature", "")
             node_status = props.get("status", "active")
 

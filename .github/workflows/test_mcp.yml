@@ -60,7 +60,7 @@ jobs:
 
       - name: Swap PyPI release for local branch checkout
         run: |
-          uv pip uninstall m_flow
+          uv pip uninstall mflow-ai || true
           uv pip install --force-reinstall --no-deps -e ../
 
       - name: Run MCP client integration test

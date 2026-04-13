@@ -82,46 +82,35 @@ class UsageTracker:
     ) -> Optional[UsageStats]:
         """Update statistics for a single procedure"""
 
-        # First read current values
-        read_query = f"""
-        MATCH (p:Node)
-        WHERE p.id = '{procedure_id}' AND p.type = 'Procedure'
-        RETURN p.properties.used_count AS used_count,
-               p.properties.inject_count AS inject_count,
-               p.properties.retrieve_count AS retrieve_count
-        """
-
         try:
-            rows = await graph_engine.query(read_query)
+            nodes, _ = await graph_engine.query_by_attributes(
+                [{"id": [procedure_id], "type": ["Procedure"]}]
+            )
         except Exception as e:
             logger.error(f"Failed to read usage for {procedure_id}: {e}")
             return None
 
-        if not rows:
+        if not nodes:
             return None
 
-        row = rows[0]
-        used_count = (row.get("used_count") or 0) + 1
-        inject_count = row.get("inject_count") or 0
-        retrieve_count = row.get("retrieve_count") or 0
+        _, props = nodes[0]
+        props = props if isinstance(props, dict) else {}
+        used_count = (props.get("used_count") or 0) + 1
+        inject_count = props.get("inject_count") or 0
+        retrieve_count = props.get("retrieve_count") or 0
 
         if usage_type == "inject":
             inject_count += 1
         else:
             retrieve_count += 1
 
-        # Update
-        update_query = f"""
-        MATCH (p:Node)
-        WHERE p.id = '{procedure_id}'
-        SET p.properties.last_used_at = {current_ts},
-            p.properties.used_count = {used_count},
-            p.properties.inject_count = {inject_count},
-            p.properties.retrieve_count = {retrieve_count}
-        """
-
         try:
-            await graph_engine.query(update_query)
+            await graph_engine.update_node(procedure_id, {
+                "last_used_at": current_ts,
+                "used_count": used_count,
+                "inject_count": inject_count,
+                "retrieve_count": retrieve_count,
+            })
         except Exception as e:
             logger.error(f"Failed to update usage for {procedure_id}: {e}")
             return None

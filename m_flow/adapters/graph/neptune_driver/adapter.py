@@ -326,6 +326,32 @@ class NeptuneGraphDB(GraphProvider):
             _log.error(f"Node deletion failed [{node_id}]: {err}")
             raise Exception(f"Delete node error: {err}") from exc
 
+    async def update_node(self, node_id: str, props: Dict[str, Any]) -> None:
+        """Merge props into an existing node."""
+        cypher = f"""
+        MATCH (n:{self._GRAPH_NODE_LABEL})
+        WHERE id(n) = $nid
+        SET n += $props
+        """
+        try:
+            await self.query(cypher, {"nid": node_id, "props": props})
+        except Exception as exc:
+            _log.error(f"update_node failed [{node_id}]: {format_neptune_error(exc)}")
+            raise
+
+    async def delete_edge(self, src: str, dst: str, rel: str) -> None:
+        """Remove a specific directed edge."""
+        cypher = f"""
+        MATCH (a:{self._GRAPH_NODE_LABEL})-[r:{rel}]->(b:{self._GRAPH_NODE_LABEL})
+        WHERE id(a) = $src AND id(b) = $dst
+        DELETE r
+        """
+        try:
+            await self.query(cypher, {"src": src, "dst": dst})
+        except Exception as exc:
+            _log.error(f"delete_edge failed [{src}->{dst}]: {format_neptune_error(exc)}")
+            raise
+
     async def delete_nodes(self, node_ids: List[str]) -> None:
         """Bulk delete nodes by IDs."""
         if not node_ids:
@@ -540,17 +566,30 @@ class NeptuneGraphDB(GraphProvider):
             _log.error(f"Bulk edge check failed: {format_neptune_error(exc)}")
             return []
 
-    async def get_edges(self, node_id: str) -> List[EdgeData]:
-        """Get all edges connected to a node."""
+    async def get_edges(self, node_id: str) -> list:
+        """Get all edges connected to a node.
+
+        Returns list of (source_node_props, relationship_name, target_node_props)
+        matching the Kuzu adapter's contract expected by all callers.
+        """
         cypher = f"""
         MATCH (n:{self._GRAPH_NODE_LABEL})-[r]-(m:{self._GRAPH_NODE_LABEL})
         WHERE id(n) = $nid
-        RETURN id(n) AS source_id, id(m) AS target_id, type(r) AS relationship_name, properties(r) AS properties
+        RETURN id(n) AS nid, properties(n) AS nprops,
+               type(r) AS rel,
+               id(m) AS mid, properties(m) AS mprops
         """
 
         try:
             results = await self.query(cypher, {"nid": node_id})
-            edges = [_transform_record_to_edge(r) for r in results]
+            edges = [
+                (
+                    {"id": r["nid"], **(r["nprops"] or {})},
+                    r["rel"],
+                    {"id": r["mid"], **(r["mprops"] or {})},
+                )
+                for r in results
+            ]
             _log.debug(f"Retrieved {len(edges)} edges for node {node_id}")
             return edges
         except Exception as exc:

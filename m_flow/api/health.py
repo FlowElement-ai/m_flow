@@ -147,9 +147,9 @@ async def _probe_graph() -> ProbeResult:
                 note="timeout acquiring connection (likely busy with writes)",
             )
 
-        if callable(getattr(eng, "query", None)):
+        if callable(getattr(eng, "is_empty", None)):
             try:
-                await asyncio.wait_for(eng.query("MATCH () RETURN count(*) LIMIT 1", {}), timeout=2.0)
+                await asyncio.wait_for(eng.is_empty(), timeout=2.0)
             except asyncio.TimeoutError:
                 ms = int((time.monotonic() - t0) * 1000)
                 return ProbeResult(
