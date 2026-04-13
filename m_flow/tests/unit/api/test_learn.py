@@ -190,10 +190,11 @@ class TestFetchEpisodesFromGraph:
         mock_engine = AsyncMock()
         ep_id = uuid4()
 
-        # Mock query() to return Episode nodes (Kuzu format: list of tuples)
-        mock_engine.query.return_value = [
-            (str(ep_id), "Unprocessed Episode", '{"summary": "Not yet learned"}'),
-        ]
+        # Mock query_by_attributes to return NodeTuple format: (node_id, props_dict)
+        mock_engine.query_by_attributes.return_value = (
+            [(str(ep_id), {"name": "Unprocessed Episode", "summary": "Not yet learned", "type": "Episode"})],
+            [],
+        )
         # get_edges returns List[Tuple[Dict, str, Dict]] - no derived_procedure edge
         mock_engine.get_edges.return_value = []
 
