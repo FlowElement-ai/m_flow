@@ -90,7 +90,7 @@ All benchmarks use gpt-5-mini (answer) + gpt-4o-mini (judge) + top-k=10.
 |--------|:---------:|
 | **M-flow** | **89%** |
 | Supermemory Cloud | 74% |
-| Mem0 | 71% |
+| Mem0 Cloud | 71% |
 | Zep Cloud | 61% |
 | Cognee | 57% |
 
