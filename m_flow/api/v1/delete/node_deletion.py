@@ -189,7 +189,8 @@ async def delete_node_by_id(
         orphan_types = (
             ["Facet", "FacetPoint", "Entity"]
             if node_type == "Episode"
-            else ["FacetPoint"] if node_type == "Facet"
+            else ["FacetPoint"]
+            if node_type == "Facet"
             else []
         )
 

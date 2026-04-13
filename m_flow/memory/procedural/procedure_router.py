@@ -437,13 +437,16 @@ async def merge_procedure_content(
         if merged_points:
             summary_parts.append(f"{search_text}: points - {merged_points}")
 
-        await graph_engine.update_node(target_procedure_id, {
-            "points_text": merged_points,
-            "context_text": merged_context_text,
-            "version": new_version,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "summary": "\n".join(summary_parts) if summary_parts else search_text,
-        })
+        await graph_engine.update_node(
+            target_procedure_id,
+            {
+                "points_text": merged_points,
+                "context_text": merged_context_text,
+                "version": new_version,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "summary": "\n".join(summary_parts) if summary_parts else search_text,
+            },
+        )
 
         logger.info(
             f"[procedural.router] Merged content into {target_procedure_id}: version {state.version} -> {new_version}"

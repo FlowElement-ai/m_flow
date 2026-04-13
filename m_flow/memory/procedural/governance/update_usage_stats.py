@@ -83,9 +83,7 @@ class UsageTracker:
         """Update statistics for a single procedure"""
 
         try:
-            nodes, _ = await graph_engine.query_by_attributes(
-                [{"id": [procedure_id], "type": ["Procedure"]}]
-            )
+            nodes, _ = await graph_engine.query_by_attributes([{"id": [procedure_id], "type": ["Procedure"]}])
         except Exception as e:
             logger.error(f"Failed to read usage for {procedure_id}: {e}")
             return None
@@ -105,12 +103,15 @@ class UsageTracker:
             retrieve_count += 1
 
         try:
-            await graph_engine.update_node(procedure_id, {
-                "last_used_at": current_ts,
-                "used_count": used_count,
-                "inject_count": inject_count,
-                "retrieve_count": retrieve_count,
-            })
+            await graph_engine.update_node(
+                procedure_id,
+                {
+                    "last_used_at": current_ts,
+                    "used_count": used_count,
+                    "inject_count": inject_count,
+                    "retrieve_count": retrieve_count,
+                },
+            )
         except Exception as e:
             logger.error(f"Failed to update usage for {procedure_id}: {e}")
             return None

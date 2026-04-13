@@ -323,9 +323,7 @@ class GraphProvider(ABC):
         Default: not implemented.  All current adapters (Kuzu, Neo4j,
         Neptune) already provide this method.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} does not implement get_document_subgraph."
-        )
+        raise NotImplementedError(f"{type(self).__name__} does not implement get_document_subgraph.")
 
     # -------------------------------------------------------------------------
     # Persistence / WAL management (optional)

@@ -297,7 +297,9 @@ class Neo4jAdapter(GraphProvider):
 
     async def delete_edge(self, src: str, dst: str, rel: str) -> None:
         """Remove a specific directed edge."""
-        cypher = f"MATCH (a:`{_BASE_NODE_LABEL}` {{id: $src}})-[r:`{rel}`]->(b:`{_BASE_NODE_LABEL}` {{id: $dst}}) DELETE r"
+        cypher = (
+            f"MATCH (a:`{_BASE_NODE_LABEL}` {{id: $src}})-[r:`{rel}`]->(b:`{_BASE_NODE_LABEL}` {{id: $dst}}) DELETE r"
+        )
         await self.query(cypher, {"src": src, "dst": dst})
 
     # =========================================================================

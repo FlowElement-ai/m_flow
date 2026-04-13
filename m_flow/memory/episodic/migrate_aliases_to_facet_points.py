@@ -209,9 +209,7 @@ async def migrate_aliases_to_facet_points(
 
     # Fetch Episodic MemorySpace
     try:
-        ns_nodes, _ns_edges = await graph_engine.query_by_attributes(
-            [{"type": ["MemorySpace"], "name": ["Episodic"]}]
-        )
+        ns_nodes, _ns_edges = await graph_engine.query_by_attributes([{"type": ["MemorySpace"], "name": ["Episodic"]}])
         if not ns_nodes:
             logger.warning("Episodic MemorySpace not found, will skip memory_spaces")
             episodic_nodeset = None

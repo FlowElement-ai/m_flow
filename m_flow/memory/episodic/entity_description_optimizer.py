@@ -245,11 +245,7 @@ async def optimize_merged_descriptions(
             # 2. Query all involves_entity edges pointing TO this entity
             # Uses abstract get_edges + Python filter for 'involves_entity'
             all_edges = await graph.get_edges(entity_id)
-            edge_results = [
-                (_src, _rel, dst)
-                for _src, _rel, dst in all_edges
-                if _rel == "involves_entity"
-            ]
+            edge_results = [(_src, _rel, dst) for _src, _rel, dst in all_edges if _rel == "involves_entity"]
 
             if not edge_results:
                 logger.debug(f"[optimizer] No edges found for entity '{entity_name}'")

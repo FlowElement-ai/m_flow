@@ -719,10 +719,7 @@ class KuzuAdapter(GraphProvider):
 
     async def delete_edge(self, src: str, dst: str, rel: str) -> None:
         """Remove a specific directed edge."""
-        cypher = (
-            "MATCH (a:Node {id: $src})-[r:EDGE]->(b:Node {id: $dst}) "
-            "WHERE r.relationship_name = $rel DELETE r"
-        )
+        cypher = "MATCH (a:Node {id: $src})-[r:EDGE]->(b:Node {id: $dst}) WHERE r.relationship_name = $rel DELETE r"
         await self.query(cypher, {"src": src, "dst": dst, "rel": rel})
 
     async def extract_node(self, node_id: str) -> Optional[Dict[str, Any]]:

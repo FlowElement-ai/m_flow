@@ -59,12 +59,14 @@ class ActiveReconciler:
         for nid, props in all_nodes:
             p = props if isinstance(props, dict) else {}
             if p.get("signature") == procedure_key or p.get("procedure_key") == procedure_key:
-                rows.append({
-                    "id": nid,
-                    "version": p.get("version"),
-                    "status": p.get("status"),
-                    "updated_at": p.get("updated_at"),
-                })
+                rows.append(
+                    {
+                        "id": nid,
+                        "version": p.get("version"),
+                        "status": p.get("status"),
+                        "updated_at": p.get("updated_at"),
+                    }
+                )
 
         if not rows:
             return ReconcileResult(
