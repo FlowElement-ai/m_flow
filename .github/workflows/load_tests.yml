@@ -32,6 +32,7 @@ permissions:
 jobs:
   load-test:
     name: Execute load / stress test with S3 storage backend
+    if: ${{ secrets.AWS_S3_DEV_USER_KEY_ID != '' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 60
 
