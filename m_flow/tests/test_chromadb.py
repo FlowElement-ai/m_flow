@@ -129,6 +129,8 @@ async def main():
     Configures ChromaDB as vector backend and runs comprehensive tests.
     """
     # Configure ChromaDB connection
+    # ChromaDB has no dataset-level partition handler, so disable access control
+    os.environ["ENABLE_BACKEND_ACCESS_CONTROL"] = "false"
     m_flow.config.set_vector_db_config(
         {
             "vector_db_url": "http://localhost:3002",
