@@ -250,6 +250,22 @@ docker compose --profile postgres up    # Backend + PostgreSQL + PGVector
 The Playground provides interactive multi-person conversations with face-aware memory.
 It requires [fanjing-face-recognition](https://github.com/FlowElement-ai/fanjing-face-recognition) as a companion service.
 
+**Quick setup** (clones repo, downloads models, configures `.env`):
+
+```bash
+./scripts/setup-playground.sh
+```
+
+The script detects your OS and prints the exact launch commands when done.
+
+> **Camera access:** Face recognition requires a camera. On macOS/Windows, Docker cannot
+> access USB cameras — run fanjing-face-recognition directly on the host (see "Recommended
+> setup" below). The `--profile playground` Docker service is only for Linux hosts with
+> `/dev/video0` access.
+
+<details>
+<summary><strong>Manual setup</strong> (if you prefer step-by-step)</summary>
+
 ```bash
 # 1. Clone fanjing-face-recognition next to m_flow
 git clone https://github.com/FlowElement-ai/fanjing-face-recognition.git ../fanjing-face-recognition
@@ -258,36 +274,58 @@ git clone https://github.com/FlowElement-ai/fanjing-face-recognition.git ../fanj
 cd ../fanjing-face-recognition
 python scripts/download_model.py        # det_10g.onnx  (detection)
 python scripts/download_arcface.py      # w600k_r50.onnx (embedding)
-# Also download face_landmarker.task from MediaPipe if needed
+python scripts/download_silero_vad.py    # silero_vad_half.onnx (voice activity detection)
+curl -L -o models/face_landmarker.task \
+  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
 
-# 3. Generate a shared API key and add to .env
+# 3. Prepare .env (if not done already)
 cd ../m_flow
+cp .env.template .env                   # then edit .env: set LLM_API_KEY, etc.
 python -c "import secrets; print('FACE_API_KEY=' + secrets.token_urlsafe(32))" >> .env
+```
 
-# 4. Launch everything
+**Recommended setup (macOS/Windows) — fanjing on host + M-flow in Docker:**
+
+```bash
+# Terminal 1: face recognition (on host — has camera access)
+cd fanjing-face-recognition
+export FACE_API_KEY="<same key from .env>"
+pip install -r requirements.txt
+python run_web_v2.py --host 0.0.0.0 --port 5001 --no-browser
+
+# Terminal 2: M-flow backend + frontend (in Docker)
+cd m_flow
+docker compose --profile ui up --build -d
+```
+
+**Linux-only — everything in Docker:**
+
+```bash
 docker compose --profile ui --profile playground up --build -d
+```
+
+**Fully local (no Docker):**
+
+```bash
+# Terminal 1: face recognition
+cd fanjing-face-recognition
+export FACE_API_KEY="<same key>"
+python run_web_v2.py --host 0.0.0.0 --port 5001 --no-browser
+
+# Terminal 2: M-flow backend
+cd m_flow
+export FACE_API_KEY="<same key>"
+python -m uvicorn m_flow.api.server:app --host 0.0.0.0 --port 8000
 ```
 
 The Playground UI is available at `http://localhost:3000` → Playground tab.
 The face recognition service runs at `http://localhost:5001`.
 
-**Running without Docker** (local development):
-
-```bash
-# Terminal 1: face recognition
-cd fanjing-face-recognition
-export FACE_API_KEY="your-shared-key"
-python run_web_v2.py --host 0.0.0.0 --port 5001 --no-browser
-
-# Terminal 2: M-flow backend
-cd m_flow
-export FACE_API_KEY="your-shared-key"
-python -m uvicorn m_flow.api.server:app --host 0.0.0.0 --port 8000
-```
-
 > **Note:** When M-flow runs inside Docker and fanjing runs on the host,
 > the backend automatically translates `localhost` → `host.docker.internal`.
 > No manual URL configuration is needed.
+
+</details>
 
 ### MCP Server
 
