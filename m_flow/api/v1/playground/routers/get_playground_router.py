@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import os
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, UploadFile
@@ -30,6 +30,8 @@ from ..models import (
 )
 from ..session import create_session, get_session
 from ..face_bridge import (
+    resolve_backend_url,
+    get_face_api_key,
     fetch_persons,
     check_face_recognition_status,
     start_face_pipeline,
@@ -541,10 +543,10 @@ def get_playground_router() -> APIRouter:
 
         try:
             async with httpx.AsyncClient(timeout=3.0) as client:
-                api_key = os.environ.get("FACE_API_KEY", "")
+                api_key = get_face_api_key()
                 hdrs = {"X-API-Key": api_key} if api_key else {}
                 resp = await client.get(
-                    f"{session.face_recognition_url}/api/stats",
+                    f"{resolve_backend_url(session.face_recognition_url)}/api/stats",
                     headers=hdrs,
                 )
                 if resp.status_code == 200:
@@ -566,7 +568,7 @@ def get_playground_router() -> APIRouter:
         if session is None:
             return {"ok": False, "error": "Session not found"}
 
-        api_key = os.environ.get("FACE_API_KEY", "")
+        api_key = get_face_api_key()
         if not api_key:
             return {"ok": False, "error": "FACE_API_KEY not set"}
 
@@ -575,7 +577,7 @@ def get_playground_router() -> APIRouter:
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(
-                    f"{session.face_recognition_url}/api/start",
+                    f"{resolve_backend_url(session.face_recognition_url)}/api/start",
                     json={
                         "mode": "camera",
                         "device": 0,
@@ -605,7 +607,7 @@ def get_playground_router() -> APIRouter:
         if session is None:
             return {"ok": False, "error": "Session not found"}
 
-        api_key = os.environ.get("FACE_API_KEY", "")
+        api_key = get_face_api_key()
         if not api_key:
             return {"ok": False, "error": "FACE_API_KEY not set"}
 
@@ -614,7 +616,7 @@ def get_playground_router() -> APIRouter:
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.post(
-                    f"{session.face_recognition_url}/api/stop",
+                    f"{resolve_backend_url(session.face_recognition_url)}/api/stop",
                     headers={"X-API-Key": api_key},
                 )
                 if resp.status_code == 200:
@@ -636,8 +638,8 @@ def get_playground_router() -> APIRouter:
         if session is None:
             return {"ok": False, "error": "Session not found"}
 
-        face_url = session.face_recognition_url
-        api_key = os.environ.get("FACE_API_KEY", "")
+        face_url = resolve_backend_url(session.face_recognition_url)
+        api_key = get_face_api_key()
         if not api_key:
             return {"ok": False, "error": "FACE_API_KEY not set"}
 

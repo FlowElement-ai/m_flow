@@ -14,7 +14,24 @@ from m_flow.shared.logging_utils import get_logger
 
 _log = get_logger(__name__)
 
-FACE_API_KEY = os.environ.get("FACE_API_KEY", "")
+def get_face_api_key() -> str:
+    """Read FACE_API_KEY lazily from env (supports dotenv loaded after module import)."""
+    return os.environ.get("FACE_API_KEY", "")
+
+_IN_DOCKER = os.path.exists("/.dockerenv")
+
+
+def resolve_backend_url(face_recognition_url: str) -> str:
+    """Translate localhost URLs to host.docker.internal when running inside Docker."""
+    if not _IN_DOCKER:
+        return face_recognition_url
+    from urllib.parse import urlparse, urlunparse
+
+    parsed = urlparse(face_recognition_url)
+    if parsed.hostname in ("localhost", "127.0.0.1"):
+        replaced = parsed._replace(netloc=parsed.netloc.replace(parsed.hostname, "host.docker.internal"))
+        return urlunparse(replaced)
+    return face_recognition_url
 
 
 # ---------------------------------------------------------------------------
@@ -25,9 +42,11 @@ FACE_API_KEY = os.environ.get("FACE_API_KEY", "")
 async def fetch_persons(face_recognition_url: str) -> list[dict]:
     """Fetch currently detected persons from the face recognition service."""
     try:
-        headers = {"X-API-Key": FACE_API_KEY} if FACE_API_KEY else {}
+        key = get_face_api_key()
+        headers = {"X-API-Key": key} if key else {}
+        url = resolve_backend_url(face_recognition_url)
         async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.get(f"{face_recognition_url}/api/persons", headers=headers)
+            resp = await client.get(f"{url}/api/persons", headers=headers)
             if resp.status_code == 200:
                 return resp.json()
     except Exception as e:
@@ -37,9 +56,11 @@ async def fetch_persons(face_recognition_url: str) -> list[dict]:
 
 async def check_face_recognition_status(face_recognition_url: str) -> str:
     try:
+        url = resolve_backend_url(face_recognition_url)
+        key = get_face_api_key()
         async with httpx.AsyncClient(timeout=3.0) as client:
-            headers = {"X-API-Key": FACE_API_KEY} if FACE_API_KEY else {}
-            resp = await client.get(f"{face_recognition_url}/api/stats", headers=headers)
+            headers = {"X-API-Key": key} if key else {}
+            resp = await client.get(f"{url}/api/stats", headers=headers)
             if resp.status_code == 200:
                 data = resp.json()
                 return "connected" if data.get("running") else "idle"
@@ -49,13 +70,15 @@ async def check_face_recognition_status(face_recognition_url: str) -> str:
 
 
 async def start_face_pipeline(face_recognition_url: str) -> bool:
-    if not FACE_API_KEY:
+    key = get_face_api_key()
+    if not key:
         _log.warning("FACE_API_KEY not set, cannot start fanjing-face-recognition pipeline")
         return False
     try:
+        url = resolve_backend_url(face_recognition_url)
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
-                f"{face_recognition_url}/api/start",
+                f"{url}/api/start",
                 json={
                     "mode": "camera",
                     "device": 0,
@@ -64,7 +87,7 @@ async def start_face_pipeline(face_recognition_url: str) -> bool:
                     "align_enabled": True,
                     "m5_enabled": True,
                 },
-                headers={"X-API-Key": FACE_API_KEY},
+                headers={"X-API-Key": key},
             )
             return resp.status_code == 200 and resp.json().get("ok", False)
     except Exception as e:
@@ -73,10 +96,11 @@ async def start_face_pipeline(face_recognition_url: str) -> bool:
 
 
 def generate_stream_url(face_recognition_url: str) -> str:
-    if not FACE_API_KEY:
+    key = get_face_api_key()
+    if not key:
         return f"{face_recognition_url}/video_feed"
     ts = str(int(time.time()))
-    sig = hmac.new(FACE_API_KEY.encode(), ts.encode(), "sha256").hexdigest()[:16]
+    sig = hmac.new(key.encode(), ts.encode(), "sha256").hexdigest()[:16]
     return f"{face_recognition_url}/video_feed?ts={ts}&sig={sig}"
 
 
@@ -216,13 +240,15 @@ async def rename_person(
     2. Update display_name in all persistent mapping rows for this face
     """
     # 1. Rename in fanjing-face-recognition
-    if FACE_API_KEY:
+    key = get_face_api_key()
+    if key:
         try:
+            url = resolve_backend_url(face_recognition_url)
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.post(
-                    f"{face_recognition_url}/api/person/rename",
+                    f"{url}/api/person/rename",
                     json={"registered_id": face_registered_id, "name": new_name},
-                    headers={"X-API-Key": FACE_API_KEY},
+                    headers={"X-API-Key": key},
                 )
                 if resp.status_code != 200:
                     _log.warning(f"fanjing-face-recognition rename failed: {resp.status_code}")

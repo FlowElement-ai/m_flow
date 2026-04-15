@@ -209,7 +209,8 @@ m_flow/              Core Python library & API
 ├── pipeline/        Composable pipeline tasks & orchestration
 ├── auth/            Authentication & multi-tenancy
 ├── shared/          Logging, settings, cross-cutting utilities
-└── tests/           Unit & integration tests
+├── tests/           Unit & integration tests
+└── api/v1/playground/  Face-aware interactive chat (Playground)
 
 m_flow-frontend/     Next.js web console
 m_flow-mcp/          Model Context Protocol server
@@ -241,7 +242,52 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full contributor guide.
 docker compose up                       # Backend only
 docker compose --profile ui up          # Backend + frontend
 docker compose --profile neo4j up       # Backend + Neo4j
+docker compose --profile postgres up    # Backend + PostgreSQL + PGVector
 ```
+
+### Playground with Face Recognition
+
+The Playground provides interactive multi-person conversations with face-aware memory.
+It requires [fanjing-face-recognition](https://github.com/FlowElement-ai/fanjing-face-recognition) as a companion service.
+
+```bash
+# 1. Clone fanjing-face-recognition next to m_flow
+git clone https://github.com/FlowElement-ai/fanjing-face-recognition.git ../fanjing-face-recognition
+
+# 2. Download face models
+cd ../fanjing-face-recognition
+python scripts/download_model.py        # det_10g.onnx  (detection)
+python scripts/download_arcface.py      # w600k_r50.onnx (embedding)
+# Also download face_landmarker.task from MediaPipe if needed
+
+# 3. Generate a shared API key and add to .env
+cd ../m_flow
+python -c "import secrets; print('FACE_API_KEY=' + secrets.token_urlsafe(32))" >> .env
+
+# 4. Launch everything
+docker compose --profile ui --profile playground up --build -d
+```
+
+The Playground UI is available at `http://localhost:3000` → Playground tab.
+The face recognition service runs at `http://localhost:5001`.
+
+**Running without Docker** (local development):
+
+```bash
+# Terminal 1: face recognition
+cd fanjing-face-recognition
+export FACE_API_KEY="your-shared-key"
+python run_web_v2.py --host 0.0.0.0 --port 5001 --no-browser
+
+# Terminal 2: M-flow backend
+cd m_flow
+export FACE_API_KEY="your-shared-key"
+python -m uvicorn m_flow.api.server:app --host 0.0.0.0 --port 8000
+```
+
+> **Note:** When M-flow runs inside Docker and fanjing runs on the host,
+> the backend automatically translates `localhost` → `host.docker.internal`.
+> No manual URL configuration is needed.
 
 ### MCP Server
 

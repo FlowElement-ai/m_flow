@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Link2, Edit3, Database, Loader2, Check } from "lucide-react";
+import { X, Link2, Edit3, Database, Loader2, Check, Plus } from "lucide-react";
 import type { PersonInFrame } from "./types";
 
 interface DatasetLinkerProps {
@@ -26,6 +26,10 @@ export function DatasetLinker({ person, sessionId, apiBase, headers, onClose, on
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState(person.name || "");
   const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createName, setCreateName] = useState(
+    `${(person.name || "User").replace(/\s+/g, "_")}_memory`
+  );
 
   useEffect(() => {
     (async () => {
@@ -62,6 +66,38 @@ export function DatasetLinker({ person, sessionId, apiBase, headers, onClose, on
       onLinked();
       onClose();
     } catch { setError("Network error"); } finally { setSaving(false); }
+  }
+
+  async function handleCreateAndLink() {
+    if (!createName.trim() || !person.face_registered_id) return;
+    setCreating(true);
+    setError(null);
+    try {
+      // Step 1: Create dataset
+      const createRes = await fetch(`${apiBase}/api/v1/datasets`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ name: createName.trim() }),
+      });
+      if (!createRes.ok) { setError(`Create dataset failed (${createRes.status})`); return; }
+      const ds = await createRes.json();
+      const dsId = String(ds.id);
+
+      // Step 2: Link face to the new dataset
+      const linkRes = await fetch(`${apiBase}/api/v1/playground/link-face`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          face_registered_id: person.face_registered_id,
+          dataset_id: dsId,
+          display_name: person.name || createName.trim(),
+        }),
+      });
+      if (!linkRes.ok) { setError(`Link failed (${linkRes.status})`); return; }
+
+      onLinked();
+      onClose();
+    } catch { setError("Network error"); } finally { setCreating(false); }
   }
 
   async function handleRename() {
@@ -156,23 +192,60 @@ export function DatasetLinker({ person, sessionId, apiBase, headers, onClose, on
                 <Loader2 size={16} className="animate-spin text-[#808080]" />
               </div>
             ) : datasets.length === 0 ? (
-              <div className="text-xs text-[#404040] text-center py-3">No datasets available</div>
-            ) : (
-              <div className="max-h-[200px] overflow-y-auto space-y-1">
-                {datasets.map(ds => (
+              <div className="space-y-3">
+                <div className="text-xs text-[#404040] text-center py-1">No datasets available</div>
+                <div className="flex gap-2">
+                  <input
+                    value={createName}
+                    onChange={e => setCreateName(e.target.value)}
+                    placeholder="Dataset name"
+                    className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-[#e0e0e0] placeholder-[#404040] focus:outline-none focus:border-[#6b8afd]"
+                  />
                   <button
-                    key={ds.id}
-                    onClick={() => setSelectedId(ds.id === selectedId ? "" : ds.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
-                      ds.id === selectedId
-                        ? "bg-[#6b8afd]/10 border border-[#6b8afd]/30 text-[#6b8afd]"
-                        : "bg-[#0a0a0a] border border-transparent hover:border-[#2a2a2a] text-[#e0e0e0]"
-                    }`}
+                    onClick={handleCreateAndLink}
+                    disabled={creating || !createName.trim()}
+                    className="px-3 py-2 rounded-lg bg-[#6b8afd] text-white text-xs font-medium hover:bg-[#5a7ae8] disabled:opacity-30 transition-colors flex items-center gap-1.5"
                   >
-                    <div className="truncate">{ds.name}</div>
-                    <div className="text-[#808080] text-[10px] truncate mt-0.5">{ds.id}</div>
+                    {creating ? <Loader2 size={12} className="animate-spin" /> : <span className="flex items-center gap-1"><Plus size={12} /> Create & Link</span>}
                   </button>
-                ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="max-h-[200px] overflow-y-auto space-y-1">
+                  {datasets.map(ds => (
+                    <button
+                      key={ds.id}
+                      onClick={() => setSelectedId(ds.id === selectedId ? "" : ds.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
+                        ds.id === selectedId
+                          ? "bg-[#6b8afd]/10 border border-[#6b8afd]/30 text-[#6b8afd]"
+                          : "bg-[#0a0a0a] border border-transparent hover:border-[#2a2a2a] text-[#e0e0e0]"
+                      }`}
+                    >
+                      <div className="truncate">{ds.name}</div>
+                      <div className="text-[#808080] text-[10px] truncate mt-0.5">{ds.id}</div>
+                    </button>
+                  ))}
+                </div>
+                <div className="pt-2 border-t border-[#1e1e1e]">
+                  <div className="text-[10px] text-[#404040] mb-1.5">Or create new</div>
+                  <div className="flex gap-2">
+                    <input
+                      value={createName}
+                      onChange={e => setCreateName(e.target.value)}
+                      placeholder="New dataset name"
+                      className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-1.5 text-xs text-[#e0e0e0] placeholder-[#404040] focus:outline-none focus:border-[#6b8afd]"
+                    />
+                    <button
+                      onClick={handleCreateAndLink}
+                      disabled={creating || !createName.trim()}
+                      className="px-2.5 py-1.5 rounded-lg bg-[#1e1e1e] border border-[#2a2a2a] text-[10px] text-[#e0e0e0] hover:border-[#6b8afd] disabled:opacity-30 transition-colors flex items-center gap-1"
+                    >
+                      {creating ? <Loader2 size={10} className="animate-spin" /> : <span className="flex items-center gap-1"><Plus size={10} /> Create</span>}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

@@ -7,7 +7,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-_ALLOWED_FACE_HOSTS = {"localhost", "127.0.0.1"}
+_ALLOWED_FACE_HOSTS = {"localhost", "127.0.0.1", "host.docker.internal"}
 
 
 class SessionCreateRequest(BaseModel):

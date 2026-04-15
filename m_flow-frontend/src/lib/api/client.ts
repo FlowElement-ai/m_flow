@@ -685,7 +685,7 @@ export class MflowApiClient {
     const raw = await this.request<ActivePipeline[]>("/api/v1/pipeline/active");
     return raw.map(p => ({
       ...p,
-      pipelineRunId: p.workflow_run_id ?? p.workflowRunId ?? p.pipelineRunId,
+      pipelineRunId: p.workflow_run_id ?? (p as any).workflowRunId ?? p.pipelineRunId,
       datasetId: p.dataset_id ?? p.datasetId ?? null,
       datasetName: p.dataset_name ?? p.datasetName ?? null,
       pipelineName: p.workflow_name ?? p.pipelineName ?? "Pipeline",

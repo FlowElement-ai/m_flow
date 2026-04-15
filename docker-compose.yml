@@ -6,6 +6,7 @@
 #   docker compose --profile neo4j up      # backend + Neo4j
 #   docker compose --profile postgres up   # backend + Postgres
 #   docker compose --profile mcp up        # backend + MCP server
+#   docker compose --profile playground up # backend + face recognition
 # =============================================================================
 
 x-common-env: &common-env
@@ -181,6 +182,37 @@ services:
       - "5540:5540"
     networks:
       - m_flow-network
+
+  # ---------------------------------------------------------------------------
+  # Playground: Face Recognition  (profile: playground)
+  # ---------------------------------------------------------------------------
+  # Requires: git clone https://github.com/FlowElement-ai/fanjing-face-recognition.git
+  #           in the parent directory (../fanjing-face-recognition).
+  # Models: download via scripts/download_model.py etc., or copy into ./models/
+  # Shared secret: set FACE_API_KEY in .env (same key for both services).
+  fanjing-face:
+    container_name: fanjing-face-recognition
+    profiles: [playground]
+    build:
+      context: ../fanjing-face-recognition
+      dockerfile: Dockerfile
+    volumes:
+      - ../fanjing-face-recognition/models:/app/models
+      - ../fanjing-face-recognition/data:/app/data
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "5001"
+      FACE_API_KEY: "${FACE_API_KEY:-}"
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "5001:5001"
+    networks:
+      - m_flow-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 # =============================================================================
 networks:
