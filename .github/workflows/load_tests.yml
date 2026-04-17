@@ -23,8 +23,8 @@ on:
       EMBEDDING_API_KEY:      { required: true }
       EMBEDDING_API_VERSION:  { required: false }
       OPENAI_API_KEY:         { required: true }
-      AWS_ACCESS_KEY_ID:      { required: false }
-      AWS_SECRET_ACCESS_KEY:  { required: false }
+      AWS_S3_DEV_USER_KEY_ID:      { required: false }
+      AWS_S3_DEV_USER_SECRET_KEY:  { required: false }
 
 permissions:
   contents: read
