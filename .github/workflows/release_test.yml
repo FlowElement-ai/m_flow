@@ -20,5 +20,6 @@ jobs:
 
   mflow_pre_release_load_suite:
     name: "Execute load & stress test suite"
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
     uses: ./.github/workflows/load_tests.yml
     secrets: inherit

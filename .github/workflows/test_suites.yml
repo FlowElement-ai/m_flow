@@ -33,20 +33,38 @@ jobs:
   # ─── Tier 1 — Core ─────────────────────────────────────────────────────
   core-tests:
     name: "Core unit & integration tests"
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
     needs: [gate]
     uses: ./.github/workflows/basic_tests.yml
     secrets: inherit
 
   e2e:
     name: "End-to-end tests"
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
     needs: [gate]
     uses: ./.github/workflows/e2e_tests.yml
     secrets: inherit
 
   cli:
     name: "CLI regression tests"
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
     uses: ./.github/workflows/cli_tests.yml
     secrets: inherit
+
+  fork-lite:
+    name: "Fork PR lightweight checks"
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork }}
+    needs: [gate]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with: {fetch-depth: 0}
+      - uses: ./.github/actions/m_flow_setup
+        with:
+          python-version: "3.11.x"
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
 
   # ─── Tier 2 — Database backends ────────────────────────────────────────
   graph-db:
@@ -180,6 +198,8 @@ jobs:
     name: "CI status gate"
     if: always()
     needs:
+      - gate
+      - fork-lite
       - core-tests
       - e2e
       - cli
@@ -199,26 +219,34 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
-      - name: Evaluate aggregated results
+      - name: Evaluate aggregated results (fork-aware)
         run: |
-          # Collect all job results into an array for compact evaluation
-          results=(
-            "${{ needs.core-tests.result }}"
-            "${{ needs.e2e.result }}"
-            "${{ needs.cli.result }}"
-            "${{ needs.graph-db.result }}"
-            "${{ needs.notebook.result }}"
-            "${{ needs.os-ubuntu.result }}"
-            "${{ needs.os-extended.result }}"
-            "${{ needs.vector-db.result }}"
-            "${{ needs.examples.result }}"
-            "${{ needs.db-examples.result }}"
-            "${{ needs.relational-db-migrations.result }}"
-            "${{ needs.llm-providers.result }}"
-            "${{ needs.compose-smoke.result }}"
-            "${{ needs.docker-build.result }}"
-            "${{ needs.ollama.result }}"
-          )
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.event.pull_request.head.repo.fork }}" == "true" ]]; then
+            # Fork PR: only require lockfile gate + lightweight lint/format checks
+            results=(
+              "${{ needs.gate.result }}"
+              "${{ needs.fork-lite.result }}"
+            )
+          else
+            # Trusted contexts: keep full strict gate
+            results=(
+              "${{ needs.core-tests.result }}"
+              "${{ needs.e2e.result }}"
+              "${{ needs.cli.result }}"
+              "${{ needs.graph-db.result }}"
+              "${{ needs.notebook.result }}"
+              "${{ needs.os-ubuntu.result }}"
+              "${{ needs.os-extended.result }}"
+              "${{ needs.vector-db.result }}"
+              "${{ needs.examples.result }}"
+              "${{ needs.db-examples.result }}"
+              "${{ needs.relational-db-migrations.result }}"
+              "${{ needs.llm-providers.result }}"
+              "${{ needs.compose-smoke.result }}"
+              "${{ needs.docker-build.result }}"
+              "${{ needs.ollama.result }}"
+            )
+          fi
 
           failed=0
           for r in "${results[@]}"; do
