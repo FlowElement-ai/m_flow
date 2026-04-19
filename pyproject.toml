@@ -63,7 +63,7 @@ dependencies = [
     # -- Resilience & observability --
     "tenacity>=8.5.0",
     "aiolimiter>=1.2.0",
-    "limits>=4.4.0,<5",
+    "limits>=4.4.0,<6",
     "structlog>=25.1.0,<26",
 
     # -- Utilities --
