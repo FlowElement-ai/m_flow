@@ -15,7 +15,7 @@ jobs:
     name: "Multimedia ingestion demo"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -35,7 +35,7 @@ jobs:
     name: "Neo4j descriptive metrics demo"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -71,7 +71,7 @@ jobs:
     name: "Dynamic pipeline steps demo"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -98,7 +98,7 @@ jobs:
     name: "Agentic reasoning procurement demo"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -125,7 +125,7 @@ jobs:
     name: "Custom pipeline wiring demo"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -152,7 +152,7 @@ jobs:
     name: "Access-control permissions demo"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -179,7 +179,7 @@ jobs:
     name: "Docling document ingestion demo"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup

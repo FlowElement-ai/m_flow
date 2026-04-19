@@ -31,7 +31,7 @@ jobs:
     name: "Server startup validation"
     steps:
       - name: Fetch repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with: {fetch-depth: 0}
 
       - name: Bootstrap M-Flow environment
@@ -58,7 +58,7 @@ jobs:
     name: "Telemetry subsystem check"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -84,7 +84,7 @@ jobs:
     name: "Telemetry with live pipeline"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -126,7 +126,7 @@ jobs:
         ports: ["5432:5432"]
     steps:
       - name: Fetch repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -153,7 +153,7 @@ jobs:
     name: "S3 bucket read/write"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -182,7 +182,7 @@ jobs:
     name: "Concurrent async database usage"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -211,7 +211,7 @@ jobs:
     name: "Dataset DB handler assertions"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -237,7 +237,7 @@ jobs:
     name: "Dataset deletion correctness"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -263,7 +263,7 @@ jobs:
     name: "Permission boundary verification"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -292,7 +292,7 @@ jobs:
     name: "Multi-tenant isolation check"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -318,7 +318,7 @@ jobs:
     name: "Graph edge ingestion correctness"
     steps:
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -367,7 +367,7 @@ jobs:
           --health-retries 5
     steps:
       - name: Fetch repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -405,7 +405,7 @@ jobs:
     steps:
 
       - name: Pull source tree
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -455,7 +455,7 @@ jobs:
           --health-retries 5
     steps:
       - name: Fetch repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -503,7 +503,7 @@ jobs:
         ports: ["5432:5432"]
     steps:
       - name: Fetch repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Bootstrap M-Flow environment
         uses: ./.github/actions/m_flow_setup
@@ -539,7 +539,7 @@ jobs:
     name: "Pipeline result caching"
     steps:
       - name: Fetch repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with: {fetch-depth: 0}
 
       - name: Bootstrap M-Flow environment

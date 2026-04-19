@@ -47,7 +47,7 @@ jobs:
           #   embedding_dimensions: "3072"
           #   embedding_max_tokens: "8191"
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         name: "Clone M-Flow source tree"
 
       - uses: ./.github/actions/m_flow_setup
@@ -103,7 +103,7 @@ jobs:
       EMBEDDING_DIMENSIONS: "1024"
       EMBEDDING_MAX_TOKENS: "8191"
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         name: "Clone M-Flow source tree"
 
       - uses: ./.github/actions/m_flow_setup
