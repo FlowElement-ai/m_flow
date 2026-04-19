@@ -141,7 +141,7 @@ scraping = [
     "lxml>=4.9.0,<5 ; python_version < '3.13'",
     "lxml>=5,<7 ; python_version >= '3.13'",
     "protego>=0.1",
-    "APScheduler>=3.10.0,<=3.11.0",
+    "APScheduler>=3.10.0,<=3.11.2",
 ]
 docling = ["docling>=2.50", "transformers>=4.50"]
 dlt = ["dlt[sqlalchemy]>=1.8.0,<2"]
