@@ -188,7 +188,7 @@ posthog = ["posthog>=3.5.0,<8"]
 deploy = ["gunicorn>=21.0.0,<26"]
 api = []
 distributed = ["modal>=1.0.0,<2.0.0"]
-aws = ["s3fs[boto3]>=2025.3.0,<2026"]
+aws = ["s3fs[boto3]>=2025.3.0,<2027"]
 
 # Notebook & debugging
 notebook = ["notebook>=7.0.0,<8"]
