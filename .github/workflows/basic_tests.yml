@@ -54,10 +54,10 @@ jobs:
         with: {python-version: "${{ inputs.python-version }}"}
 
       - name: "Run ruff lint"
-        uses: astral-sh/ruff-action@f2e32211077f40bfeab40e16285216924ebea4cb  # v2
+        uses: astral-sh/ruff-action@0ce1b0bf8b818ef400413f810f8a11cdbda0034b  # v4.0.0
 
       - name: "Verify code formatting"
-        uses: astral-sh/ruff-action@f2e32211077f40bfeab40e16285216924ebea4cb  # v2
+        uses: astral-sh/ruff-action@0ce1b0bf8b818ef400413f810f8a11cdbda0034b  # v4.0.0
         with: {args: "format --check"}
 
   # ── Stage 2: test suites (gated behind static-analysis) ────────────────
