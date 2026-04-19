@@ -104,12 +104,12 @@ graphiti = ["graphiti-core>=0.7.0,<0.29"]
 # Relational databases
 postgres = [
     "psycopg2>=2.9.9,<3",
-    "pgvector>=0.3.4,<0.4",
+    "pgvector>=0.3.4,<0.5",
     "asyncpg>=0.29.0,<1.0.0",
 ]
 postgres-binary = [
     "psycopg2-binary>=2.9.9,<3.0.0",
-    "pgvector>=0.3.4,<0.4",
+    "pgvector>=0.3.4,<0.5",
     "asyncpg>=0.29.0,<1.0.0",
 ]
 
