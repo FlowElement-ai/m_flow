@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Run stale-PR lifecycle
-        uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639  # v9
+        uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f  # v10.2.0
         with:
           days-before-stale: 60
           days-before-close: 7
