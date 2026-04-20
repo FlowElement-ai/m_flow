@@ -14,14 +14,17 @@ Usage:
     docker compose --profile mcp up -d
 
 Available MCP Tools (11):
-    - memorize         : Convert data to knowledge graph (data, dataset_name)
-    - save_interaction : Save user-agent interaction records (data)
+    - memorize         : Convert data to knowledge graph (data, dataset_name, wait)
+                         Returns a task_id; use `wait=True` for synchronous mode.
+    - save_interaction : Save user-agent interaction records (data, wait)
+                         Returns a task_id; use `wait=True` for synchronous mode.
     - search           : Search knowledge graph (search_query, recall_mode, top_k, datasets,
                          system_prompt, enable_hybrid_search)
     - list_data        : List datasets and data items (dataset_id)
     - delete           : Delete data items (data_id, dataset_id, mode)
     - prune            : Reset knowledge graph (graph, vector, metadata, cache)
-    - memorize_status  : Get memorization pipeline status
+    - memorize_status  : Get memorization pipeline status, or per-task outcome
+                         when called with `task_id` (issue #111).
     - learn            : Extract procedural memory (datasets, episode_ids, run_in_background)
     - update_data      : Update existing data (data_id, data, dataset_id)
     - ingest           : One-step ingestion (data, dataset_name, skip_memorize)

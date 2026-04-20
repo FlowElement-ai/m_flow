@@ -5,6 +5,36 @@ All notable changes to the M-flow MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Silent data loss on background-task failures (#111).** `memorize` and
+  `save_interaction` previously used `asyncio.create_task` and immediately
+  returned a "started" message, so any failure in the background coroutine
+  (expired LLM key, locked graph DB, malformed input, etc.) was only logged
+  server-side. The MCP caller never learned about it, producing a silent
+  data-loss scenario.
+
+### Added
+
+- Module-level **task registry** (bounded LRU, default 100 records) that
+  captures each background task's `state` (`running`/`success`/`failed`),
+  timestamps, dataset, error type, and error message.
+- `memorize` and `save_interaction` now return a **`task_id`** in the
+  response payload that callers can use to poll the outcome.
+- `memorize_status` now accepts an optional **`task_id`** argument and, when
+  provided, returns the recorded task outcome instead of pipeline-level
+  status. Without `task_id` the historical pipeline-level behaviour is
+  preserved (backward compatible).
+- `memorize` and `save_interaction` accept a new **`wait: bool = False`**
+  parameter; when `True` the tool synchronously awaits the background task
+  (with a configurable 600 s timeout) and returns the actual outcome inline,
+  which is useful for CI / scripting flows that need a definitive result.
+- 11 new unit tests in `test_server_task_tracking.py` covering success,
+  failure, status lookup, sync mode (success / error / timeout), and LRU
+  eviction.
+
 ## [0.6.0] - 2026-03-19
 
 ### Added

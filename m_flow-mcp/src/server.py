@@ -14,9 +14,15 @@ import json
 import os
 import subprocess
 import sys
+import traceback
+from collections import OrderedDict
 from contextlib import redirect_stdout
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional
+from uuid import uuid4
 
 import mcp.types as types
 import uvicorn
@@ -41,6 +47,154 @@ _log = get_logger()
 _client: Optional[MflowClient] = None
 
 _CORS_ORIGINS = ["http://localhost:3000"]
+
+
+# ============================================================
+# Background-task tracking (issue #111)
+#
+# The MCP `memorize` and `save_interaction` tools were historically
+# fire-and-forget: they used `asyncio.create_task(...)` and immediately
+# returned a "started" message. If the background coroutine raised
+# (e.g. expired LLM key, locked graph DB, malformed input), the failure
+# was only logged server-side — the MCP caller (IDE / agent) never
+# learned about it, producing a silent data-loss scenario.
+#
+# This module-level registry records each background task's outcome so
+# callers can later query `memorize_status(task_id=...)` and see the
+# actual success / failure / error message. The registry is an in-memory
+# bounded LRU; restarting the MCP server clears it (acceptable for the
+# short-lived agent sessions this server targets).
+# ============================================================
+
+
+class TaskState(str, Enum):
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
+@dataclass
+class TaskRecord:
+    """Outcome of a background MCP task surfaced to the caller."""
+
+    task_id: str
+    tool: str
+    state: TaskState
+    started_at: str
+    finished_at: Optional[str] = None
+    dataset_name: Optional[str] = None
+    error_type: Optional[str] = None
+    error_message: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+# Bounded registry: keep the most recent N task records. Older entries
+# are evicted (LRU) so the dict never grows unbounded.
+_TASK_REGISTRY_MAX = 100
+# Default sync-mode timeout — `wait=True` callers (CI, scripts) get a
+# bounded wait; on timeout the task continues running in the background
+# and can still be queried via `memorize_status(task_id=...)`.
+_WAIT_TIMEOUT_SECS = 600
+
+_task_registry: "OrderedDict[str, TaskRecord]" = OrderedDict()
+_task_registry_lock = asyncio.Lock()
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _short_id() -> str:
+    """Generate a short, URL-friendly task ID."""
+    return uuid4().hex[:12]
+
+
+async def _record_task_start(
+    tool: str,
+    dataset_name: Optional[str] = None,
+    **metadata: Any,
+) -> str:
+    """Create a new task record in RUNNING state and return its ID."""
+    task_id = _short_id()
+    record = TaskRecord(
+        task_id=task_id,
+        tool=tool,
+        state=TaskState.RUNNING,
+        started_at=_now_iso(),
+        dataset_name=dataset_name,
+        metadata=dict(metadata),
+    )
+    async with _task_registry_lock:
+        _task_registry[task_id] = record
+        # LRU eviction: drop oldest entries until under the cap.
+        while len(_task_registry) > _TASK_REGISTRY_MAX:
+            _task_registry.popitem(last=False)
+    return task_id
+
+
+async def _record_task_outcome(
+    task_id: str,
+    state: TaskState,
+    error: Optional[BaseException] = None,
+) -> None:
+    """Mark a task as completed (or failed) and record any error."""
+    async with _task_registry_lock:
+        record = _task_registry.get(task_id)
+        if record is None:
+            # Already evicted from the LRU — safe to ignore.
+            return
+        record.state = state
+        record.finished_at = _now_iso()
+        if error is not None:
+            record.error_type = type(error).__name__
+            record.error_message = str(error)
+        # Refresh recency so that completed records are not the first
+        # to be evicted while RUNNING placeholders age.
+        _task_registry.move_to_end(task_id)
+
+
+async def _get_task_record(task_id: str) -> Optional[TaskRecord]:
+    async with _task_registry_lock:
+        return _task_registry.get(task_id)
+
+
+async def _run_tracked_task(
+    task_id: str,
+    coro_factory: Callable[[], Awaitable[None]],
+) -> None:
+    """Execute a background coroutine and record its outcome.
+
+    Wraps the user-provided coroutine factory so any exception is captured
+    into the task registry. Errors are still logged at ERROR level so the
+    existing log-based observability continues to work; the registry only
+    adds an additional channel that callers can poll.
+    """
+    try:
+        await coro_factory()
+        await _record_task_outcome(task_id, TaskState.SUCCESS)
+    except Exception as exc:
+        _log.error("[task=%s] background task failed: %s", task_id, exc)
+        _log.debug("[task=%s] traceback:\n%s", task_id, traceback.format_exc())
+        await _record_task_outcome(task_id, TaskState.FAILED, error=exc)
+
+
+def _format_task_record(record: TaskRecord) -> str:
+    """Render a task record for the MCP TextContent payload."""
+    lines = [
+        f"任务状态: {record.state.value}",
+        f"task_id: {record.task_id}",
+        f"工具: {record.tool}",
+    ]
+    if record.dataset_name:
+        lines.append(f"数据集: {record.dataset_name}")
+    lines.append(f"开始: {record.started_at}")
+    if record.finished_at:
+        lines.append(f"结束: {record.finished_at}")
+    if record.error_type:
+        lines.append(f"错误类型: {record.error_type}")
+    if record.error_message:
+        lines.append(f"错误信息: {record.error_message}")
+    return "\n".join(lines)
 
 
 async def _run_sse_server():
@@ -96,6 +250,7 @@ async def _health_check(request):
 async def memorize(
     data: str,
     dataset_name: str = "main_dataset",
+    wait: bool = False,
 ) -> list:
     """
     将数据转换为结构化知识图谱
@@ -108,39 +263,77 @@ async def memorize(
         待处理的数据内容
     dataset_name : str, optional
         目标数据集名称 (默认: main_dataset)
+    wait : bool, optional
+        默认 False — 异步触发，立即返回 task_id。设为 True 时同步等待
+        任务完成（最多 600 秒），适合 CI / 脚本场景需要拿到真正结果的情形；
+        若超时，任务继续在后台运行，可通过 memorize_status(task_id=...) 查询。
 
     返回
     ----
     list
-        包含后台任务启动信息的 TextContent 列表
+        包含 task_id 和后台任务启动 / 完成信息的 TextContent 列表。
+        失败时也会返回带 task_id 的错误说明，调用方可据此进一步排查。
     """
-
-    async def _task(content: str, ds_name: str = "main_dataset"):
-        with redirect_stdout(sys.stderr):
-            try:
-                _log.info("记忆化处理开始: dataset=%s", ds_name)
-                await _client.add(content, dataset_name=ds_name)
-                await _client.memorize(datasets=[ds_name], enable_content_routing=False)
-                _log.info("记忆化处理完成: dataset=%s", ds_name)
-            except Exception as e:
-                _log.error("记忆化处理失败: %s", e)
-                import traceback
-
-                _log.debug(traceback.format_exc())
-
-    asyncio.create_task(_task(data, dataset_name))
+    task_id = await _record_task_start("memorize", dataset_name=dataset_name)
     log_path = get_log_file_location()
+
+    async def _do_work() -> None:
+        with redirect_stdout(sys.stderr):
+            _log.info("[task=%s] 记忆化处理开始: dataset=%s", task_id, dataset_name)
+            await _client.add(data, dataset_name=dataset_name)
+            await _client.memorize(datasets=[dataset_name], enable_content_routing=False)
+            _log.info("[task=%s] 记忆化处理完成: dataset=%s", task_id, dataset_name)
+
+    bg_task = asyncio.create_task(_run_tracked_task(task_id, _do_work))
+
+    if wait:
+        try:
+            await asyncio.wait_for(asyncio.shield(bg_task), timeout=_WAIT_TIMEOUT_SECS)
+        except asyncio.TimeoutError:
+            return [
+                types.TextContent(
+                    type="text",
+                    text=(
+                        f"⏳ 同步等待超时（任务仍在后台运行）\n"
+                        f"task_id: {task_id}\n"
+                        f"数据集: {dataset_name}\n"
+                        f'使用 memorize_status(task_id="{task_id}") 查询最终状态\n'
+                        f"日志: {log_path}"
+                    ),
+                )
+            ]
+        record = await _get_task_record(task_id)
+        if record and record.state == TaskState.SUCCESS:
+            return [
+                types.TextContent(
+                    type="text",
+                    text=(f"✅ 同步执行成功\ntask_id: {task_id}\n数据集: {dataset_name}\n日志: {log_path}"),
+                )
+            ]
+        err = record.error_message if record and record.error_message else "未知错误"
+        return [
+            types.TextContent(
+                type="text",
+                text=(f"❌ 同步执行失败\ntask_id: {task_id}\n数据集: {dataset_name}\n错误: {err}\n日志: {log_path}"),
+            )
+        ]
 
     return [
         types.TextContent(
             type="text",
-            text=f"✅ 后台任务已启动\n数据集: {dataset_name}\n使用 memorize_status 查看状态\n日志: {log_path}",
+            text=(
+                f"✅ 后台任务已启动\n"
+                f"task_id: {task_id}\n"
+                f"数据集: {dataset_name}\n"
+                f'使用 memorize_status(task_id="{task_id}") 查询任务状态\n'
+                f"日志: {log_path}"
+            ),
         )
     ]
 
 
 @_mcp.tool(name="save_interaction", description="保存用户-Agent交互记录")
-async def save_interaction(data: str) -> list:
+async def save_interaction(data: str, wait: bool = False) -> list:
     """
     保存用户交互数据
 
@@ -148,31 +341,69 @@ async def save_interaction(data: str) -> list:
     ----
     data : str
         交互内容
+    wait : bool, optional
+        默认 False — 异步触发，立即返回 task_id。设为 True 时同步等待
+        任务完成（最多 600 秒）。
 
     返回
     ----
     list
-        包含后台任务启动信息的TextContent列表
+        包含 task_id 的 TextContent 列表，便于后续通过
+        memorize_status(task_id=...) 查询任务结果。
     """
-
-    async def _task(content: str):
-        with redirect_stdout(sys.stderr):
-            try:
-                _log.info("保存交互开始")
-                await _client.add(content, graph_scope=["user_agent_interaction"])
-                # 交互记录是简单文本，禁用 content_routing
-                await _client.memorize(enable_content_routing=False)
-                _log.info("保存交互完成")
-            except Exception as e:
-                _log.error("保存交互失败: %s", e)
-
-    asyncio.create_task(_task(data))
+    task_id = await _record_task_start("save_interaction")
     log_path = get_log_file_location()
+
+    async def _do_work() -> None:
+        with redirect_stdout(sys.stderr):
+            _log.info("[task=%s] 保存交互开始", task_id)
+            await _client.add(data, graph_scope=["user_agent_interaction"])
+            # 交互记录是简单文本，禁用 content_routing
+            await _client.memorize(enable_content_routing=False)
+            _log.info("[task=%s] 保存交互完成", task_id)
+
+    bg_task = asyncio.create_task(_run_tracked_task(task_id, _do_work))
+
+    if wait:
+        try:
+            await asyncio.wait_for(asyncio.shield(bg_task), timeout=_WAIT_TIMEOUT_SECS)
+        except asyncio.TimeoutError:
+            return [
+                types.TextContent(
+                    type="text",
+                    text=(
+                        f"⏳ 同步等待超时（任务仍在后台运行）\n"
+                        f"task_id: {task_id}\n"
+                        f'使用 memorize_status(task_id="{task_id}") 查询最终状态\n'
+                        f"日志: {log_path}"
+                    ),
+                )
+            ]
+        record = await _get_task_record(task_id)
+        if record and record.state == TaskState.SUCCESS:
+            return [
+                types.TextContent(
+                    type="text",
+                    text=(f"✅ 同步执行成功\ntask_id: {task_id}\n日志: {log_path}"),
+                )
+            ]
+        err = record.error_message if record and record.error_message else "未知错误"
+        return [
+            types.TextContent(
+                type="text",
+                text=(f"❌ 同步执行失败\ntask_id: {task_id}\n错误: {err}\n日志: {log_path}"),
+            )
+        ]
 
     return [
         types.TextContent(
             type="text",
-            text=f"后台处理交互数据\n日志: {log_path}",
+            text=(
+                f"✅ 后台处理交互数据\n"
+                f"task_id: {task_id}\n"
+                f'使用 memorize_status(task_id="{task_id}") 查询任务状态\n'
+                f"日志: {log_path}"
+            ),
         )
     ]
 
@@ -493,15 +724,42 @@ async def prune(
 
 
 @_mcp.tool()
-async def memorize_status() -> list:
+async def memorize_status(task_id: Optional[str] = None) -> list:
     """
-    获取记忆化管道状态
+    获取记忆化管道状态，或某次后台任务的最终结果。
+
+    参数
+    ----
+    task_id : str, optional
+        当指定时，返回该后台任务的状态与错误信息（来自 issue #111 引入的
+        task registry）。可用于检查 `memorize` / `save_interaction` 异步
+        触发的任务是否成功，避免 silent data loss。
+
+        不指定时退回到历史行为：返回 dataset 维度的 pipeline 状态。
 
     返回
     ----
     list
-        管道状态信息
+        TextContent 列表。task 维度查询返回任务记录详情；pipeline 维度
+        查询返回各 dataset 的 memorize_pipeline 状态。
     """
+    # Per-task lookup (issue #111). Backward compatible: when caller does
+    # not pass task_id, fall through to the original pipeline-level query.
+    if task_id:
+        record = await _get_task_record(task_id)
+        if record is None:
+            return [
+                types.TextContent(
+                    type="text",
+                    text=(
+                        f"ℹ️ 未找到 task_id={task_id} 的记录。\n"
+                        f"可能原因：任务记录已被淘汰（仅保留最近 {_TASK_REGISTRY_MAX} 条）"
+                        f"或 task_id 输入有误。"
+                    ),
+                )
+            ]
+        return [types.TextContent(type="text", text=_format_task_record(record))]
+
     with redirect_stdout(sys.stderr):
         try:
             if getattr(_client, "_remote", False):
