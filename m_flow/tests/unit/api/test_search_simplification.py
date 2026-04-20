@@ -249,5 +249,62 @@ class TestSearchSyntax:
         return mflow_root / "api" / "v1" / "search" / "search.py"
 
 
+# ============================================================
+# Test the simplified /query HTTP endpoint added for issue #112
+# ============================================================
+
+
+class TestSimplifiedQueryEndpoint:
+    """Verify the POST /api/v1/search/query endpoint is wired up."""
+
+    def test_router_declares_query_payload_dto(self):
+        """The new endpoint exposes a typed request body."""
+        router_file = self._get_router_file()
+        content = router_file.read_text()
+        assert "class QueryPayloadDTO" in content
+        assert "question:" in content
+        assert "mode:" in content
+        assert "top_k:" in content
+
+    def test_router_declares_query_response_dto(self):
+        """The new endpoint declares a typed response."""
+        router_file = self._get_router_file()
+        content = router_file.read_text()
+        assert "class QueryResponseDTO" in content
+        assert "answer:" in content
+        assert "context:" in content
+        assert "datasets:" in content
+
+    def test_router_registers_post_query_endpoint(self):
+        """Confirm POST /query is registered on the search router."""
+        router_file = self._get_router_file()
+        content = router_file.read_text()
+        assert '@router.post("/query"' in content
+        assert "async def execute_query" in content
+
+    def test_endpoint_delegates_to_search_query(self):
+        """The handler must delegate to the existing query() helper."""
+        router_file = self._get_router_file()
+        content = router_file.read_text()
+        # The handler imports and awaits the simplified query() function
+        # rather than re-implementing the logic.
+        assert "from m_flow.api.v1.search.search import query as query_impl" in content
+        assert "await query_impl(" in content
+
+    def test_endpoint_enforces_authentication(self):
+        """The handler depends on the authenticated-user fixture."""
+        router_file = self._get_router_file()
+        content = router_file.read_text()
+        # `_auth_dep()` is the project's authenticated-user dependency.
+        # Both /search and /search/query must use it so that dataset
+        # visibility and permission enforcement match.
+        assert content.count("Depends(_auth_dep())") >= 2
+
+    def _get_router_file(self) -> pathlib.Path:
+        current = pathlib.Path(__file__)
+        mflow_root = current.parent.parent.parent.parent
+        return mflow_root / "api" / "v1" / "search" / "routers" / "get_search_router.py"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

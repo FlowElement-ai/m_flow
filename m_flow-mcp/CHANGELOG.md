@@ -15,6 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (expired LLM key, locked graph DB, malformed input, etc.) was only logged
   server-side. The MCP caller never learned about it, producing a silent
   data-loss scenario.
+- **`query` and `prune` unavailable in remote / API mode (#112).** When the
+  MCP server ran with `--api-url` (the recommended Docker production
+  topology), three tools raised `NotImplementedError` and asked the user
+  to fall back to in-process direct mode, which defeats the purpose of the
+  API architecture. They now call real backend endpoints:
+  - `query()` → `POST /api/v1/search/query` (new endpoint, see *Added*).
+  - `prune_data()` → `POST /api/v1/prune/data`.
+  - `prune_system()` → `POST /api/v1/prune/system`.
+
+  The two prune endpoints already existed with full security (superuser
+  auth, confirmation strings, active-pipeline check, distributed lock,
+  cooldown, master switch) and required no backend changes — the fix was
+  simply to wire the MCP client to call them.
 
 ### Added
 
@@ -34,6 +47,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 11 new unit tests in `test_server_task_tracking.py` covering success,
   failure, status lookup, sync mode (success / error / timeout), and LRU
   eviction.
+- New backend endpoint **`POST /api/v1/search/query`** (in
+  `m_flow/api/v1/search/routers/get_search_router.py`) that wraps the
+  existing in-process `m_flow.api.v1.search.search.query()` helper so the
+  simplified question / mode / top_k contract is reachable over HTTP.
+  Authentication and dataset-visibility rules match the existing
+  `POST /api/v1/search` endpoint.
+- 8 new client tests in `test_m_flow_client_remote_query_prune.py`
+  covering remote-mode `query()`, `prune_data()`, `prune_system()` URL,
+  payload, auth header, and error propagation.
+- 5 new structural tests in
+  `m_flow/tests/unit/api/test_search_simplification.py` confirming the
+  new `/query` endpoint, its DTOs, delegation to the existing helper,
+  and authentication enforcement.
+
+### Changed
+
+- The `prune` and `query` MCP tools now surface backend HTTP error codes
+  (`403` "API disabled", `401` "no superuser token", `409` "active
+  pipelines", `429` "cooldown") with actionable hints, replacing the
+  previous "use direct mode" message which was no longer accurate.
 
 ## [0.6.0] - 2026-03-19
 

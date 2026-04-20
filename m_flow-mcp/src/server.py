@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional
 from uuid import uuid4
 
+import httpx
 import mcp.types as types
 import uvicorn
 from mcp.server import FastMCP
@@ -713,8 +714,27 @@ async def prune(
                 cleared.append("缓存")
 
             return [types.TextContent(type="text", text=f"✅ 已清除: {', '.join(cleared) if cleared else '无'}")]
-        except NotImplementedError:
-            msg = "❌ API 模式不支持 prune 操作，请使用直接模式运行 MCP 服务器"
+        except httpx.HTTPStatusError as http_err:
+            # In API mode the prune endpoint enforces several admin guards
+            # (master-switch flag, superuser auth, active-pipeline check,
+            # cooldown). Surface the server's status code so the caller can
+            # distinguish "feature disabled" from "permission denied" from
+            # "in-flight pipelines blocking" and react appropriately.
+            status_code = http_err.response.status_code
+            try:
+                detail = http_err.response.json().get("detail", str(http_err))
+            except Exception:
+                detail = http_err.response.text or str(http_err)
+            hint_map = {
+                403: "API 模式下 prune 默认关闭。请在 backend 设置 MFLOW_ENABLE_PRUNE_API=true 并以 superuser 身份调用。",
+                401: "未授权：API 模式下 prune 必须携带 superuser 的 auth token。",
+                409: "当前有 pipeline 正在运行，无法执行 prune。",
+                429: "未到 cooldown 间隔，请稍后再试。",
+            }
+            hint = hint_map.get(status_code, "")
+            msg = f"❌ 清空失败 (HTTP {status_code}): {detail}"
+            if hint:
+                msg += f"\n💡 {hint}"
             _log.error(msg)
             return [types.TextContent(type="text", text=msg)]
         except Exception as e:
@@ -997,9 +1017,13 @@ async def query(
 
             _log.info("查询完成")
             return [types.TextContent(type="text", text=answer)]
-        except NotImplementedError as e:
-            msg = f"⚠️ {str(e)}\n请使用直接模式运行 MCP 服务器"
-            _log.warning(msg)
+        except httpx.HTTPStatusError as http_err:
+            try:
+                detail = http_err.response.json().get("error", str(http_err))
+            except Exception:
+                detail = http_err.response.text or str(http_err)
+            msg = f"❌ 查询失败 (HTTP {http_err.response.status_code}): {detail}"
+            _log.error(msg)
             return [types.TextContent(type="text", text=msg)]
         except Exception as e:
             _log.error("查询失败: %s", e)

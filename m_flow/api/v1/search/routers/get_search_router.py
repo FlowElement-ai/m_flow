@@ -132,6 +132,48 @@ class _HistoryEntry(OutDTO):
 
 
 # ---------------------------------------------------------------------------
+# Simplified query DTO (issue #112)
+#
+# Wraps the in-process `m_flow.api.v1.search.search.query()` helper so that
+# remote callers (the MCP server in API mode, third-party clients) can use
+# the same simplified question/mode/top_k contract without having to mint
+# a full SearchPayloadDTO.
+# ---------------------------------------------------------------------------
+
+
+class QueryPayloadDTO(InDTO):
+    """Simplified query request — natural-language question + retrieval mode."""
+
+    question: str = Field(..., description="Natural-language question.")
+    datasets: list[str] | None = Field(
+        default=None,
+        description="Restrict the query to these dataset names. Omit to search all visible datasets.",
+    )
+    mode: str = Field(
+        default="episodic",
+        description="Retrieval mode: episodic | triplet | chunks | procedural | cypher.",
+    )
+    top_k: int = Field(default=10, ge=1, le=100, description="Maximum number of results.")
+
+
+class QueryResponseDTO(OutDTO):
+    """Simplified query response — mirrors `search.QueryResult.to_dict()`."""
+
+    answer: str | None = Field(
+        default=None,
+        description="LLM-generated answer (populated only in triplet mode).",
+    )
+    context: list | dict = Field(
+        default_factory=list,
+        description="Retrieved context (list for episodic/chunks/procedural, dict for triplet).",
+    )
+    datasets: list[str] = Field(
+        default_factory=list,
+        description="Source dataset names that contributed to the result.",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Telemetry Helper
 # ---------------------------------------------------------------------------
 
@@ -302,6 +344,56 @@ def get_search_router() -> APIRouter:
             return jsonable_encoder(results)
         except PermissionDeniedError:
             return []
+        except Exception as err:
+            return JSONResponse(status_code=409, content={"error": str(err)})
+
+    @router.post("/query", response_model=QueryResponseDTO)
+    async def execute_query(
+        payload: QueryPayloadDTO,
+        user: "User" = Depends(_auth_dep()),
+    ):
+        """
+        Simplified natural-language query (issue #112).
+
+        Wraps the in-process `m_flow.api.v1.search.search.query()` helper so
+        that the MCP server (and any other remote consumer) can reach the
+        same simplified contract over HTTP. The local function runs under
+        the authenticated user's session context, so dataset visibility and
+        permission filtering match the existing `/api/v1/search` semantics.
+        """
+        from m_flow.api.v1.search.search import query as query_impl
+        from m_flow.auth.exceptions.exceptions import PermissionDeniedError
+
+        _emit_search_telemetry(
+            "Query API Endpoint Invoked",
+            user.id,
+            endpoint="POST /v1/search/query",
+            mode=payload.mode,
+            datasets=payload.datasets,
+            top_k=payload.top_k,
+        )
+
+        # The simplified query helper resolves the seed user internally for
+        # local callers; here we explicitly bind the request user so the
+        # remote path enforces the same access-control boundary as the
+        # existing /api/v1/search endpoint.
+        from m_flow.context_global_variables import set_session_user_context_variable
+
+        set_session_user_context_variable(user)
+
+        try:
+            result = await query_impl(
+                question=payload.question,
+                datasets=payload.datasets,
+                mode=payload.mode,
+                top_k=payload.top_k,
+            )
+            return jsonable_encoder(result.to_dict())
+        except PermissionDeniedError:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Permission denied for one or more requested datasets."},
+            )
         except Exception as err:
             return JSONResponse(status_code=409, content={"error": str(err)})
 

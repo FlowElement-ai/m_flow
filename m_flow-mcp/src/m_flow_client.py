@@ -221,16 +221,32 @@ class MflowClient:
             return await self._engine.delete(data_id=data_id, dataset_id=dataset_id, mode=mode, user=current_user)
 
     async def prune_data(self) -> Dict[str, Any]:
-        """Wipe all user data from the knowledge graph.
+        """Wipe stored file artefacts from the knowledge graph backend.
+
+        In **remote** mode this calls the existing
+        ``POST /api/v1/prune/data`` admin endpoint, which requires:
+
+        * superuser authentication (via ``auth_token``);
+        * the server-side ``MFLOW_ENABLE_PRUNE_API=true`` master switch;
+        * a confirmation string the client supplies on the caller's behalf;
+        * no active pipelines (HTTP 409 if any are running);
+        * a cooldown period since the previous prune (HTTP 429 otherwise).
 
         Returns:
-            Prune outcome.
+            Prune outcome dictionary.
 
         Raises:
-            NotImplementedError: When running in remote mode (no API endpoint).
+            httpx.HTTPStatusError: For any non-2xx response from the API.
         """
         if self._remote:
-            raise NotImplementedError("Data pruning is unavailable in remote mode")
+            url = f"{self._base_url}/api/v1/prune/data"
+            resp = await self._http.post(
+                url,
+                json={"confirm": "DELETE_FILES"},
+                headers=self._auth_headers(),
+            )
+            resp.raise_for_status()
+            return resp.json()
 
         with redirect_stdout(sys.stderr):
             await self._engine.prune.prune_data()
@@ -245,6 +261,11 @@ class MflowClient:
     ) -> Dict[str, Any]:
         """Wipe system-level stores (graph DB, vectors, metadata, cache).
 
+        In **remote** mode this calls ``POST /api/v1/prune/system`` with the
+        same security constraints as :meth:`prune_data` (superuser,
+        ``MFLOW_ENABLE_PRUNE_API``, confirmation string, no-active-pipeline,
+        cooldown).
+
         Args:
             graph: Clear graph database.
             vector: Clear vector indices.
@@ -252,13 +273,26 @@ class MflowClient:
             cache: Clear ephemeral cache.
 
         Returns:
-            Prune outcome.
+            Prune outcome dictionary.
 
         Raises:
-            NotImplementedError: When running in remote mode.
+            httpx.HTTPStatusError: For any non-2xx response from the API.
         """
         if self._remote:
-            raise NotImplementedError("System pruning is unavailable in remote mode")
+            url = f"{self._base_url}/api/v1/prune/system"
+            resp = await self._http.post(
+                url,
+                json={
+                    "confirm": "DELETE_SYSTEM",
+                    "graph": graph,
+                    "vector": vector,
+                    "metadata": metadata,
+                    "cache": cache,
+                },
+                headers=self._auth_headers(),
+            )
+            resp.raise_for_status()
+            return resp.json()
 
         with redirect_stdout(sys.stderr):
             await self._engine.prune.prune_system(graph=graph, vector=vector, metadata=metadata, cache=cache)
@@ -469,6 +503,10 @@ class MflowClient:
     ) -> str:
         """High-level natural-language question interface.
 
+        In **remote** mode this calls ``POST /api/v1/search/query``, which
+        wraps the same in-process ``m_flow.api.v1.search.search.query()``
+        helper used by direct mode under the authenticated user's session.
+
         Args:
             question: Free-form question.
             datasets: Restrict to these datasets.
@@ -476,13 +514,32 @@ class MflowClient:
             top_k: Result count cap.
 
         Returns:
-            Answer string.
+            Answer string. For triplet mode the LLM-generated ``answer`` is
+            returned; otherwise the retrieved ``context`` is rendered as a
+            string. The contract matches the historical direct-mode return
+            shape so existing callers (the MCP ``query`` tool) need no
+            changes.
 
         Raises:
-            NotImplementedError: When running in remote mode.
+            httpx.HTTPStatusError: For any non-2xx response from the API.
         """
         if self._remote:
-            raise NotImplementedError("High-level query is unavailable in remote mode")
+            url = f"{self._base_url}/api/v1/search/query"
+            payload: Dict[str, Any] = {"question": question, "mode": mode, "top_k": top_k}
+            if datasets is not None:
+                payload["datasets"] = datasets
+            resp = await self._http.post(url, json=payload, headers=self._auth_headers())
+            resp.raise_for_status()
+            data = resp.json()
+            if isinstance(data, dict):
+                # Mirror direct-mode collapse: prefer LLM answer, otherwise
+                # surface the retrieved context as a string for downstream
+                # MCP TextContent rendering.
+                if data.get("answer"):
+                    return str(data["answer"])
+                if "context" in data:
+                    return str(data["context"])
+            return str(data)
 
         from m_flow import query as _query
 
