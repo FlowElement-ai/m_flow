@@ -358,7 +358,7 @@ class MflowClient:
             Learning outcome.
 
         Raises:
-            NotImplementedError: When running in remote mode.
+            NotImplementedError: In remote mode, only when ``episode_ids`` are supplied.
         """
         if self._remote:
             if episode_ids:

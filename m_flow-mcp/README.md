@@ -81,7 +81,7 @@ python -m src.server \
   --api-token your-token
 ```
 
-> **注意**：API 模式下 `memorize_status` 和 `learn` 已支持远程调用；`prune` 仍不可用。
+> **注意**：API 模式下 `memorize_status`、`learn`、`query` 和 `prune` 已支持远程调用；如果传入 `episode_ids`，`learn` 仍会在远程模式下报 `NotImplementedError`。
 
 ## IDE 集成
 
