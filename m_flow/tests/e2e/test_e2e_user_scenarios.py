@@ -457,6 +457,19 @@ class TestAPIEndpointCoverage:
 
         assert response.status_code != 404, f"Endpoint {endpoint} not found"
 
+        if endpoint == "/":
+            assert response.status_code == 200
+            assert response.json() == {"status": "ok", "service": "m_flow"}
+        elif endpoint == "/openapi.json":
+            assert response.status_code == 200
+            payload = response.json()
+            assert "openapi" in payload
+            assert "paths" in payload
+        elif endpoint == "/health":
+            assert response.status_code in [200, 503]
+        elif endpoint == "/health/detailed":
+            assert response.status_code in [200, 503]
+
     @pytest.mark.parametrize(
         "endpoint,method",
         [
