@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import importlib
 import os
+from datetime import datetime
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -134,13 +135,46 @@ class TestConditionalBehavior:
         "ep,method",
         [
             ("/api/v1/search", "GET"),
-            ("/api/v1/datasets", "GET"),
         ],
     )
     def test_get_endpoint_with_auth(self, auth_client, ep, method):
         """测试 GET 端点在认证用户下正常工作"""
         r = auth_client.get(ep) if method == "GET" else auth_client.post(ep, json={})
         assert r.status_code != 401
+
+    def test_datasets_endpoint_returns_current_contract(self, monkeypatch, auth_client, mock_user):
+        """测试数据集端点在认证用户下返回当前契约结构。"""
+        permissions_module = importlib.import_module("m_flow.auth.permissions.methods")
+        created_at = datetime(2026, 4, 25, 12, 15, 0)
+        updated_at = datetime(2026, 4, 25, 12, 16, 0)
+        dataset_id = uuid4()
+        owner_id = mock_user.id
+
+        async def fake_datasets(_user, _permission):
+            return [
+                SimpleNamespace(
+                    id=dataset_id,
+                    name="alpha",
+                    created_at=created_at,
+                    updated_at=updated_at,
+                    owner_id=owner_id,
+                )
+            ]
+
+        monkeypatch.setattr(permissions_module, "get_all_user_permission_datasets", fake_datasets)
+
+        r = auth_client.get("/api/v1/datasets")
+
+        assert r.status_code == 200, r.text
+        assert r.json() == [
+            {
+                "id": str(dataset_id),
+                "name": "alpha",
+                "createdAt": "2026-04-25T12:15:00",
+                "updatedAt": "2026-04-25T12:16:00",
+                "ownerId": str(owner_id),
+            }
+        ]
 
     _gsm_mod = importlib.import_module("m_flow.config.settings.get_settings")
 
