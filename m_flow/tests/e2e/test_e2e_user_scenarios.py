@@ -207,11 +207,61 @@ class TestE2E002DailyUsageFlow:
         response = test_client.get("/api/v1/search")
         assert response.status_code != 401
 
-    def test_browse_graph(self, test_client):
-        """Step 5: User can browse graph."""
+    def test_browse_graph(self, monkeypatch, test_client):
+        """Step 5: User can browse graph using the current graph response contract."""
+        permissions_module = importlib.import_module("m_flow.auth.permissions.methods")
+        context_module = importlib.import_module("m_flow.context_global_variables")
+        adapters_module = importlib.import_module("m_flow.adapters.graph")
+
+        dataset_id = uuid.uuid4()
+        owner_id = uuid.uuid4()
+        dataset = SimpleNamespace(id=dataset_id, owner_id=owner_id)
+        recorded_context: list[tuple[uuid.UUID, uuid.UUID]] = []
+
+        class FakeGraphEngine:
+            async def get_graph_data(self):
+                return [
+                    ("node-1", {"type": "Entity", "name": "Alice", "role": "engineer"}),
+                    ("node-2", {"type": "Episode", "summary": "Weekly standup"}),
+                ], [("node-1", "node-2", "appears_in")]
+
+        async def fake_datasets(_user, _permission):
+            return [dataset]
+
+        async def fake_set_db_context(ds_id, user_id):
+            recorded_context.append((ds_id, user_id))
+
+        async def fake_get_graph_provider():
+            return FakeGraphEngine()
+
+        monkeypatch.setattr(permissions_module, "get_all_user_permission_datasets", fake_datasets)
+        monkeypatch.setattr(context_module, "backend_access_control_enabled", lambda: True)
+        monkeypatch.setattr(context_module, "set_db_context", fake_set_db_context)
+        monkeypatch.setattr(adapters_module, "get_graph_provider", fake_get_graph_provider)
+
         response = test_client.get("/api/v1/graph")
-        assert response.status_code != 401
-        assert response.status_code != 404
+
+        assert response.status_code == 200, response.text
+        assert recorded_context == [(dataset_id, owner_id)]
+        assert response.json() == {
+            "nodes": [
+                {
+                    "id": "node-1",
+                    "name": "Alice",
+                    "type": "Entity",
+                    "properties": {"role": "engineer"},
+                    "datasetId": str(dataset_id),
+                },
+                {
+                    "id": "node-2",
+                    "name": "Episode_node-2",
+                    "type": "Episode",
+                    "properties": {"summary": "Weekly standup"},
+                    "datasetId": str(dataset_id),
+                },
+            ],
+            "edges": [{"source": "node-1", "target": "node-2", "relationship": "appears_in"}],
+        }
 
 
 # ============================================================================
