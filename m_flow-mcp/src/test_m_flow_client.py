@@ -137,6 +137,35 @@ def test_remote_learn_raises_for_unknown_dataset_names() -> None:
     asyncio.run(run())
 
 
+def test_remote_learn_forwards_run_in_background_flag() -> None:
+    async def run() -> None:
+        client = MflowClient(server_url="https://example.com", auth_token="secret")
+        client._http = RecordingAsyncClient()
+
+        async def fake_list_datasets() -> list[dict[str, str]]:
+            return [{"id": "11111111-1111-1111-1111-111111111111", "name": "alpha"}]
+
+        client.list_datasets = fake_list_datasets
+
+        result = await client.learn(datasets=["alpha"], run_in_background=True)
+
+        assert result == {"success": True, "message": "started"}
+        assert client._http.posts == [
+            (
+                "https://example.com/api/v1/procedural/extract-from-episodic",
+                {
+                    "dataset_id": "11111111-1111-1111-1111-111111111111",
+                    "limit": 100,
+                    "force_reprocess": False,
+                    "run_in_background": True,
+                },
+                {"Content-Type": "application/json", "Authorization": "Bearer secret"},
+            )
+        ]
+
+    asyncio.run(run())
+
+
 def test_remote_learn_rejects_episode_ids_until_backend_supports_them() -> None:
     async def run() -> None:
         client = MflowClient(server_url="https://example.com")
