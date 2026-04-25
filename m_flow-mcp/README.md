@@ -26,13 +26,13 @@ python src/server.py --transport sse --port 8000
 
 | 工具 | 说明 | 核心参数 |
 |------|------|----------|
-| `memorize` | 将数据转化为知识图谱 | `data` (必需), `dataset_name` |
-| `save_interaction` | 保存用户-Agent 交互 | `data` (必需) |
+| `memorize` | 将数据转化为知识图谱 | `data` (必需), `dataset_name`, `wait` |
+| `save_interaction` | 保存用户-Agent 交互 | `data` (必需), `wait` |
 | `search` | 搜索知识图谱 | `search_query`, `recall_mode`, `top_k`, `datasets`, `system_prompt`, `enable_hybrid_search` |
 | `list_data` | 列出数据集 | `dataset_id` (可选) |
 | `delete` | 删除数据 | `data_id`, `dataset_id`, `mode` |
 | `prune` | 选择性清空知识图谱 | `graph`, `vector`, `metadata`, `cache` |
-| `memorize_status` | 查询处理状态 | 无参数 |
+| `memorize_status` | 查询处理状态 | `task_id` (可选) |
 | `learn` | 提取程序性记忆 | `datasets`, `episode_ids`, `run_in_background` |
 | `update_data` | 更新已有数据 | `data_id` (必需), `data` (必需), `dataset_id` (必需) |
 | `ingest` | 一步入库 | `data` (必需), `dataset_name`, `skip_memorize` |
@@ -82,6 +82,8 @@ python -m src.server \
 ```
 
 > **注意**：API 模式下 `memorize_status`、`learn`、`query` 和 `prune` 已支持远程调用；如果传入 `episode_ids`，`learn` 仍会在远程模式下报 `NotImplementedError`。
+>
+> **后台任务**：`memorize` 和 `save_interaction` 现在会返回 `task_id`。传入 `wait=true` 时会同步等待任务完成；默认后台执行时，可通过 `memorize_status(task_id=...)` 查询最终成功或失败状态。
 
 ## IDE 集成
 
