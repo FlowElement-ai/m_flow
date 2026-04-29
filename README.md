@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/flowelement-ai-m-flow-badge.png)](https://mseep.ai/app/flowelement-ai-m-flow)
+
 <div align="center">
 
 # M-flow
