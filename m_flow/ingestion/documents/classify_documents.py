@@ -33,12 +33,11 @@ _TEXT_EXTS = {
 }
 
 # Office document formats
-_OFFICE_EXTS = {ext: UnstructuredDocument for ext in ["docx", "doc", "odt", "xls", "xlsx", "ppt", "pptx", "odp", "ods"]}
+_OFFICE_EXTS = dict.fromkeys(["docx", "doc", "odt", "xls", "xlsx", "ppt", "pptx", "odp", "ods"], UnstructuredDocument)
 
 # Image formats
-_IMAGE_EXTS = {
-    ext: ImageDocument
-    for ext in [
+_IMAGE_EXTS = dict.fromkeys(
+    [
         "png",
         "dwg",
         "xcf",
@@ -55,11 +54,12 @@ _IMAGE_EXTS = {
         "ico",
         "heic",
         "avif",
-    ]
-}
+    ],
+    ImageDocument,
+)
 
 # Audio formats
-_AUDIO_EXTS = {ext: AudioDocument for ext in ["aac", "mid", "mp3", "m4a", "ogg", "flac", "wav", "amr", "aiff"]}
+_AUDIO_EXTS = dict.fromkeys(["aac", "mid", "mp3", "m4a", "ogg", "flac", "wav", "amr", "aiff"], AudioDocument)
 
 # Merged mapping table
 _DOC_TYPE_MAP = {**_TEXT_EXTS, **_OFFICE_EXTS, **_IMAGE_EXTS, **_AUDIO_EXTS}
