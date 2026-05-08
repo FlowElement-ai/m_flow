@@ -100,7 +100,8 @@ def create_vector_engine(
         )
 
     # Unknown provider
-    known = list(supported_databases.keys()) + [
+    known = [
+        *supported_databases.keys(),
         "LanceDB",
         "PGVector",
         "neptune_analytics",

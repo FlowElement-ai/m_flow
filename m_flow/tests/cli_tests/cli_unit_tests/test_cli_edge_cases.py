@@ -76,7 +76,7 @@ class TestAddEdgeCases:
             "path.multiple.dots.txt",
         ]
 
-        parsed = parser.parse_args(test_paths + ["--dataset-name", "special_ds"])
+        parsed = parser.parse_args([*test_paths, "--dataset-name", "special_ds"])
         assert parsed.data == test_paths
         assert parsed.dataset_name == "special_ds"
 

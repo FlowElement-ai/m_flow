@@ -121,7 +121,8 @@ def _build_adapter(
         gid = graph_database_url.replace(NEPTUNE_ANALYTICS_ENDPOINT_URL, "")
         return NeptuneAnalyticsAdapter(graph_id=gid)
 
-    known = list(supported_databases.keys()) + [
+    known = [
+        *supported_databases.keys(),
         "neo4j",
         "kuzu",
         "kuzu-remote",

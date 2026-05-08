@@ -151,7 +151,7 @@ async def compute_max_similarity_batch(existing_texts: List[str], new_text: str)
         engine = await _get_embed_engine()
 
         # Batch embed all texts at once
-        all_texts = existing_texts + [new_text]
+        all_texts = [*existing_texts, new_text]
         embeddings = await engine.embed_text(all_texts)
 
         if len(embeddings) != len(all_texts):
