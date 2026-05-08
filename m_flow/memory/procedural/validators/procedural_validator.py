@@ -170,7 +170,7 @@ def validate_procedure_from_datapoint(
 
     # Extract packs
     if hasattr(procedure_dp, "has_steps") and procedure_dp.has_steps:
-        for edge, steps_pack in procedure_dp.has_steps:
+        for _edge, steps_pack in procedure_dp.has_steps:
             bundle.steps_pack = {
                 "id": str(getattr(steps_pack, "id", "")),
                 "name": getattr(steps_pack, "name", ""),
@@ -192,7 +192,7 @@ def validate_procedure_from_datapoint(
             break
 
     if hasattr(procedure_dp, "has_context") and procedure_dp.has_context:
-        for edge, ctx_pack in procedure_dp.has_context:
+        for _edge, ctx_pack in procedure_dp.has_context:
             bundle.context_pack = {
                 "id": str(getattr(ctx_pack, "id", "")),
                 "name": getattr(ctx_pack, "name", ""),

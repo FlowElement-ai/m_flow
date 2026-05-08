@@ -125,7 +125,7 @@ class NeptuneAnalyticsAdapter(NeptuneGraphDB, VectorProvider):
         zero_vec = [0.0] * vec_size
         vectors = []
         ptr = 0
-        for i, txt in enumerate(texts):
+        for _i, txt in enumerate(texts):
             if txt is not None:
                 vectors.append(computed[ptr])
                 ptr += 1

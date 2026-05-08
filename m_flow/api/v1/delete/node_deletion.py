@@ -67,7 +67,7 @@ async def preview_deletion(
 
     edges = await graph.get_edges(node_id)
     neighbor_types = set()
-    for src_props, rel_name, dst_props in edges:
+    for _src_props, _rel_name, dst_props in edges:
         if isinstance(dst_props, dict):
             neighbor_types.add(dst_props.get("type", "Unknown"))
 

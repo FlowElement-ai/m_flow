@@ -156,7 +156,7 @@ async def persist_env_values(updates: Dict[str, str]) -> bool:
 
             # Process existing lines
             new_lines = []
-            for key, old_value, original_line in lines:
+            for key, _old_value, original_line in lines:
                 if key and key in updates:
                     # Update this key
                     new_value = _format_value(updates[key])

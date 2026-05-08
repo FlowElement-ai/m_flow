@@ -340,7 +340,7 @@ class ProceduralRetriever(BaseGraphRetriever):
                 text = attrs.get("text") or attrs.get("search_text") or attrs.get("name", "")
 
                 if ntype == "ProcedureStepPoint" and text:
-                    for pid, proc in procedures.items():
+                    for _pid, proc in procedures.items():
                         proc["steps"].append(text)
                         break
                 elif ntype == "ProcedureContextPoint" and text:
@@ -351,7 +351,7 @@ class ProceduralRetriever(BaseGraphRetriever):
                         except Exception:
                             props = {}
                     ptype = props.get("point_type", "context")
-                    for pid, proc in procedures.items():
+                    for _pid, proc in procedures.items():
                         proc["context_points"].append({"type": ptype, "text": text})
                         break
 

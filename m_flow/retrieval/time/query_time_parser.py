@@ -1017,7 +1017,7 @@ def parse_query_time(
                 positions_to_remove.append((m.start(), m.end()))
 
     # 3. Parse explicit years
-    for pattern, ptype in _EXPLICIT_YEAR_PATTERNS:
+    for pattern, _ptype in _EXPLICIT_YEAR_PATTERNS:
         for m in re.finditer(pattern, query):
             if _overlaps(m.start(), m.end(), positions_to_remove):
                 continue

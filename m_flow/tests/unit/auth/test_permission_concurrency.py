@@ -203,7 +203,7 @@ class TestConcurrencyStress:
         num_iterations = 20
 
         perm_ids = []
-        for i in range(num_iterations):
+        for _i in range(num_iterations):
             async with session_factory() as session:
                 perm = await get_or_create_permission(session, perm_name)
                 await session.commit()
