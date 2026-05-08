@@ -126,7 +126,7 @@ class LLMConfig(MflowSettings):
 
         return self
 
-    def model_post_init(self, __context: Any) -> None:
+    def model_post_init(self, context: Any, /) -> None:
         """Initialise BAML registry when selected."""
         if self.backends.lower() != "baml":
             return

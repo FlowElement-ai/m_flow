@@ -211,8 +211,6 @@ def _check_cooldown() -> None:
     Raises:
         HTTPException: 429 if cooldown period has not elapsed.
     """
-    global _last_prune_time
-
     now = time.time()
     elapsed = now - _last_prune_time
 

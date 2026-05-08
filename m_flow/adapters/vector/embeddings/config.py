@@ -41,7 +41,7 @@ class EmbeddingConfig(MflowSettings):
 
     model_config = SettingsConfigDict(env_prefix="MFLOW_", env_file=".env", extra="allow")
 
-    def model_post_init(self, __context) -> None:
+    def model_post_init(self, context, /) -> None:
         if self.embedding_batch_size is None:
             self.embedding_batch_size = 36
 
