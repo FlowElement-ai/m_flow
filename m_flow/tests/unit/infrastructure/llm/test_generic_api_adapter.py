@@ -399,3 +399,60 @@ class TestFactoryIntegration:
         assert isinstance(backend, GenericAPIAdapter)
         assert backend.model == "deepseek-chat"
         assert backend.endpoint == "https://api.deepseek.com/v1"
+
+    @pytest.mark.parametrize(
+        ("endpoint", "model", "expected_endpoint", "expected_model"),
+        [
+            ("", "", "https://api.atlascloud.ai/v1", "deepseek-ai/deepseek-v4-pro"),
+            (
+                "https://atlas.example.com/v1",
+                "custom/model",
+                "https://atlas.example.com/v1",
+                "custom/model",
+            ),
+        ],
+    )
+    @patch("m_flow.llm.utils.get_model_max_completion_tokens", return_value=None)
+    @patch("m_flow.llm.backends.litellm_instructor.llm.get_llm_client.get_llm_config")
+    @patch(f"{_MODULE}.instructor")
+    @patch(f"{_MODULE}.litellm")
+    def test_atlascloud_provider_creates_generic_adapter(
+        self,
+        mock_litellm,
+        mock_instructor,
+        mock_config,
+        mock_max_tokens,
+        endpoint,
+        model,
+        expected_endpoint,
+        expected_model,
+    ):
+        mock_instructor.from_litellm.return_value = MagicMock()
+        mock_instructor.Mode = MagicMock(side_effect=lambda value: value)
+
+        cfg = MagicMock()
+        cfg.llm_provider = "atlascloud"
+        cfg.llm_endpoint = endpoint
+        cfg.llm_api_key = "atlas-test-key"
+        cfg.llm_model = model
+        cfg.llm_max_completion_tokens = 4096
+        cfg.llm_instructor_mode = "json_mode"
+        cfg.fallback_api_key = ""
+        cfg.fallback_endpoint = ""
+        cfg.fallback_model = ""
+        mock_config.return_value = cfg
+
+        from m_flow.llm.backends.litellm_instructor.llm.get_llm_client import (
+            create_llm_backend,
+        )
+        from m_flow.llm.backends.litellm_instructor.llm.generic_llm_api.adapter import (
+            GenericAPIAdapter,
+        )
+
+        backend = create_llm_backend()
+
+        assert isinstance(backend, GenericAPIAdapter)
+        assert backend.name == "Atlas Cloud"
+        assert backend.api_key == "atlas-test-key"
+        assert backend.endpoint == expected_endpoint
+        assert backend.model == expected_model

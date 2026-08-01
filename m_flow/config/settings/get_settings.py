@@ -34,6 +34,7 @@ class SupportedProvider(str, Enum):
     ollama = "ollama"
     bedrock = "bedrock"
     minimax = "minimax"
+    atlascloud = "atlascloud"
     custom = "custom"
 
 
@@ -98,6 +99,9 @@ _MODEL_CATALOG: dict[str, list[dict[str, str]]] = {
     "minimax": [
         {"value": "MiniMax-M2.7", "label": "MiniMax M2.7"},
         {"value": "MiniMax-M2.7-highspeed", "label": "MiniMax M2.7 Highspeed"},
+    ],
+    "atlascloud": [
+        {"value": "deepseek-ai/deepseek-v4-pro", "label": "DeepSeek V4 Pro"},
     ],
     "custom": [
         {"value": "deepseek/deepseek-chat", "label": "DeepSeek Chat"},

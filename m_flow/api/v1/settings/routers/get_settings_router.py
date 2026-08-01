@@ -64,7 +64,17 @@ class SystemSettingsOut(OutDTO):
 # Request DTOs
 # ---------------------------------------------------------------------------
 
-LLMProviderType = Literal["openai", "ollama", "anthropic", "gemini", "mistral", "bedrock", "minimax", "custom"]
+LLMProviderType = Literal[
+    "openai",
+    "ollama",
+    "anthropic",
+    "gemini",
+    "mistral",
+    "bedrock",
+    "minimax",
+    "atlascloud",
+    "custom",
+]
 VectorDBProviderType = Literal["lancedb", "chromadb", "pgvector"]
 EmbeddingProviderType = Literal["openai", "ollama", "fastembed", "azure"]
 
