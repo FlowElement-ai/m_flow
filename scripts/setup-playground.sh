@@ -15,7 +15,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 FANJING_DIR="$(dirname "$PROJECT_DIR")/fanjing-face-recognition"
-FANJING_REPO="https://github.com/FlowElement-ai/fanjing-face-recognition.git"
+FANJING_REPO="https://github.com/FlowElement-xinliuyuansu/fanjing-face-recognition.git"
 
 AUTO_YES=false
 if [[ "${1:-}" == "--yes" || "${1:-}" == "-y" ]]; then
@@ -283,5 +283,5 @@ if ! grep -q "^LLM_API_KEY=.\+" "$ENV_FILE" 2>/dev/null || grep -q "^LLM_API_KEY
     warn "Remember to set LLM_API_KEY in .env before starting M-flow!"
 fi
 
-echo -e "${BLUE}Documentation: https://github.com/FlowElement-ai/m_flow#playground-with-face-recognition${NC}"
+echo -e "${BLUE}Documentation: https://github.com/FlowElement-xinliuyuansu/m_flow#playground-with-face-recognition${NC}"
 echo ""

@@ -64,7 +64,7 @@ FROM python:3.12-slim-bookworm AS runner
 
 LABEL maintainer="M-flow Team" \
       description="M-flow backend API server" \
-      org.opencontainers.image.source="https://github.com/FlowElement-ai/m_flow"
+      org.opencontainers.image.source="https://github.com/FlowElement-xinliuyuansu/m_flow"
 
 RUN set -eux; \
     apt-get update; \

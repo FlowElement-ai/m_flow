@@ -186,7 +186,7 @@ services:
   # ---------------------------------------------------------------------------
   # Playground: Face Recognition  (profile: playground)
   # ---------------------------------------------------------------------------
-  # Requires: git clone https://github.com/FlowElement-ai/fanjing-face-recognition.git
+  # Requires: git clone https://github.com/FlowElement-xinliuyuansu/fanjing-face-recognition.git
   #           in the parent directory (../fanjing-face-recognition).
   # Models: download via scripts/download_model.py etc., or copy into ./models/
   # Shared secret: set FACE_API_KEY in .env (same key for both services).

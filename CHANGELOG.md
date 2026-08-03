@@ -102,4 +102,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LanceDB vector storage integration
 - KuzuDB graph database adapter
 
-For detailed release notes, see [GitHub Releases](https://github.com/FlowElement-ai/m_flow/releases).
+For detailed release notes, see [GitHub Releases](https://github.com/FlowElement-xinliuyuansu/m_flow/releases).

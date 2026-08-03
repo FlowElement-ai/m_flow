@@ -1,6 +1,6 @@
 
 # Mflow Starter Kit
-Welcome to the <a href="https://github.com/FlowElement-ai/m_flow">m_flow</a> Starter Repo! This repository is designed to help you get started quickly by providing a structured dataset and pre-built data pipelines using m_flow to build powerful knowledge graphs.
+Welcome to the <a href="https://github.com/FlowElement-xinliuyuansu/m_flow">m_flow</a> Starter Repo! This repository is designed to help you get started quickly by providing a structured dataset and pre-built data pipelines using m_flow to build powerful knowledge graphs.
 
 You can use this repo to ingest, process, and visualize data in minutes. 
 

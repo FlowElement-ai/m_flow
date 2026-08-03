@@ -15,7 +15,7 @@ We take the security of M-flow seriously. If you discover a security vulnerabili
 
 Instead, please use one of the following methods:
 
-1. **GitHub Security Advisories (preferred):** Navigate to the [Security tab](https://github.com/FlowElement-ai/m_flow/security/advisories) of this repository and click "Report a vulnerability."
+1. **GitHub Security Advisories (preferred):** Navigate to the [Security tab](https://github.com/FlowElement-xinliuyuansu/m_flow/security/advisories) of this repository and click "Report a vulnerability."
 
 2. **Email:** Send a detailed report to **contact@xinliuyuansu.com**.
 

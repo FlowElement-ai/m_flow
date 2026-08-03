@@ -203,7 +203,7 @@ How the routing maps in practice:
 
 **Face-aware memory partitioning (real-time routing)**
 
-- Optional integration with [fanjing-face-recognition](https://github.com/FlowElement-ai/fanjing-face-recognition) detects who is in front of the camera in real time
+- Optional integration with [fanjing-face-recognition](https://github.com/FlowElement-xinliuyuansu/fanjing-face-recognition) detects who is in front of the camera in real time
 - Each recognized person is automatically mapped to **their own memory partition** (dataset)
 - Conversations are ingested into and retrieved from the right partition with no manual switching — multi-person memory isolation by biometric identity
 
@@ -254,7 +254,7 @@ All systems use gpt-5-mini (answer) + gpt-4o-mini (judge). Cat 5 (adversarial) e
 | Zep Cloud | 61% | 82% | 30% |
 | Cognee | 57% | 67% | 43% |
 
-Per-category breakdowns, reproduction scripts, raw data, and methodology for all systems: [mflow-benchmarks](https://github.com/FlowElement-ai/mflow-benchmarks)
+Per-category breakdowns, reproduction scripts, raw data, and methodology for all systems: [mflow-benchmarks](https://github.com/FlowElement-xinliuyuansu/mflow-benchmarks)
 
 ## Features
 
@@ -276,7 +276,7 @@ Per-category breakdowns, reproduction scripts, raw data, and methodology for all
 ### One-Command Setup (Docker)
 
 ```bash
-git clone https://github.com/FlowElement-ai/m_flow.git && cd m_flow
+git clone https://github.com/FlowElement-xinliuyuansu/m_flow.git && cd m_flow
 ./quickstart.sh
 ```
 
@@ -292,7 +292,7 @@ export LLM_API_KEY="sk-..."
 ### Install from Source
 
 ```bash
-git clone https://github.com/FlowElement-ai/m_flow.git && cd m_flow
+git clone https://github.com/FlowElement-xinliuyuansu/m_flow.git && cd m_flow
 pip install -e .             # editable install for development
 ```
 
@@ -367,7 +367,7 @@ docs/                Architecture & design documents
 ## Development
 
 ```bash
-git clone https://github.com/FlowElement-ai/m_flow.git && cd m_flow
+git clone https://github.com/FlowElement-xinliuyuansu/m_flow.git && cd m_flow
 uv sync --dev --all-extras --reinstall
 
 # Test
@@ -393,7 +393,7 @@ docker compose --profile postgres up    # Backend + PostgreSQL + PGVector
 ### Playground with Face Recognition
 
 The Playground provides interactive multi-person conversations with face-aware memory.
-It requires [fanjing-face-recognition](https://github.com/FlowElement-ai/fanjing-face-recognition) as a companion service.
+It requires [fanjing-face-recognition](https://github.com/FlowElement-xinliuyuansu/fanjing-face-recognition) as a companion service.
 
 **Quick setup** (clones repo, downloads models, configures `.env`):
 
@@ -413,7 +413,7 @@ The script detects your OS and prints the exact launch commands when done.
 
 ```bash
 # 1. Clone fanjing-face-recognition next to m_flow
-git clone https://github.com/FlowElement-ai/fanjing-face-recognition.git ../fanjing-face-recognition
+git clone https://github.com/FlowElement-xinliuyuansu/fanjing-face-recognition.git ../fanjing-face-recognition
 
 # 2. Download face models
 cd ../fanjing-face-recognition

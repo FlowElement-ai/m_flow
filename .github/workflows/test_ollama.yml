@@ -1,7 +1,7 @@
 # M-Flow — Ollama integration gate (phi4 + avr/sfr-embedding-mistral).
 # -----------------------------------------------------------------------------
 # Reusable workflow: local-LLM smoke on BuildJet (≥32 GB RAM). Repository:
-# FlowElement-ai/m_flow — header and job layout are project-specific; keep in sync
+# FlowElement-xinliuyuansu/m_flow — header and job layout are project-specific; keep in sync
 # with the project README LLM configuration examples only by semantics, not text.
 # -----------------------------------------------------------------------------
 name: test | Ollama Local-LLM Integration

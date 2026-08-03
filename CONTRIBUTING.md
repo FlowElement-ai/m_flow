@@ -9,7 +9,7 @@ Thank you for your interest in improving M-flow! This guide walks you through th
 
 | Resource | URL |
 |----------|-----|
-| Issue Tracker | <https://github.com/FlowElement-ai/m_flow/issues> |
+| Issue Tracker | <https://github.com/FlowElement-xinliuyuansu/m_flow/issues> |
 | Email | <mailto:contact@xinliuyuansu.com> |
 
 ## How to Contribute
@@ -114,6 +114,6 @@ Example: `feat(retrieval): add hybrid vector+graph search`
 ## Contact
 
 - **General questions**: GitHub Issues or email contact@xinliuyuansu.com
-- **Security issues**: Please report privately via [GitHub Security Advisories](https://github.com/FlowElement-ai/m_flow/security/advisories/new). Do NOT open public issues for security vulnerabilities.
+- **Security issues**: Please report privately via [GitHub Security Advisories](https://github.com/FlowElement-xinliuyuansu/m_flow/security/advisories/new). Do NOT open public issues for security vulnerabilities.
 
 Thank you for helping make M-flow better!

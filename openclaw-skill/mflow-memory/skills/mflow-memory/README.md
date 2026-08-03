@@ -37,6 +37,6 @@ Setup takes ~1 minute. After that, restart OpenClaw — your agent automatically
 
 ## Links
 
-- [M-flow GitHub](https://github.com/FlowElement-ai/m_flow)
+- [M-flow GitHub](https://github.com/FlowElement-xinliuyuansu/m_flow)
 - [M-flow Documentation](https://docs.m-flow.ai)
-- [LoCoMo Benchmark: 81.8%](https://github.com/FlowElement-ai/mflow-benchmarks)
+- [LoCoMo Benchmark: 81.8%](https://github.com/FlowElement-xinliuyuansu/mflow-benchmarks)

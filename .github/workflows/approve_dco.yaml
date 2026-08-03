@@ -23,7 +23,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const ORG = 'FlowElement-ai';
+            const ORG = 'FlowElement-xinliuyuansu';
             const author = context.payload.pull_request.user.login;
             const body   = context.payload.pull_request.body ?? '';
 

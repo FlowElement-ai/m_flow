@@ -333,7 +333,7 @@ export function TroubleshootingPanel({
         <p className="text-[11px] text-zinc-500">
           Still having issues? Check the{" "}
           <a
-            href="https://github.com/FlowElement-ai/m_flow"
+            href="https://github.com/FlowElement-xinliuyuansu/m_flow"
             target="_blank"
             rel="noopener noreferrer"
             className="text-zinc-400 hover:text-zinc-200 underline underline-offset-2"
@@ -342,7 +342,7 @@ export function TroubleshootingPanel({
           </a>{" "}
           or{" "}
           <a
-            href="https://github.com/FlowElement-ai/m_flow/issues"
+            href="https://github.com/FlowElement-xinliuyuansu/m_flow/issues"
             target="_blank"
             rel="noopener noreferrer"
             className="text-zinc-400 hover:text-zinc-200 underline underline-offset-2"

@@ -28,8 +28,8 @@ jobs:
             echo ""
             echo "Thank you to everyone who has contributed to M-flow!"
             echo ""
-            echo '<a href="https://github.com/FlowElement-ai/m_flow/graphs/contributors">'
-            echo '  <img src="https://contrib.rocks/image?repo=FlowElement-ai/m_flow" />'
+            echo '<a href="https://github.com/FlowElement-xinliuyuansu/m_flow/graphs/contributors">'
+            echo '  <img src="https://contrib.rocks/image?repo=FlowElement-xinliuyuansu/m_flow" />'
             echo "</a>"
             echo ""
             echo "## Top Contributors"

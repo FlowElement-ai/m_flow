@@ -1,6 +1,6 @@
 # Coreference Resolution Module
 
-Part of [M-Flow](https://github.com/FlowElement-ai/m_flow) — the cognitive memory engine for AI agents.
+Part of [M-Flow](https://github.com/FlowElement-xinliuyuansu/m_flow) — the cognitive memory engine for AI agents.
 
 A lightweight, rule-based coreference resolution system that replaces pronouns with their concrete antecedents. Used by M-Flow's preprocessing pipeline to resolve references before retrieval, ensuring that "he", "it", "the company" are replaced with actual names before entering the knowledge graph.
 
@@ -19,7 +19,7 @@ Supports Chinese (11 pronoun types with semantic role analysis) and English (bas
 ### From Source / 源码安装
 
 ```bash
-git clone https://github.com/FlowElement-ai/m_flow.git
+git clone https://github.com/FlowElement-xinliuyuansu/m_flow.git
 cd m_flow/coreference
 pip install -e .
 ```
@@ -225,11 +225,11 @@ If you use this project in your research, please cite:
   title = {Chinese Coreference Resolution System},
   author = {Junting Hua},
   year = {2026},
-  url = {https://github.com/FlowElement-ai/m_flow}
+  url = {https://github.com/FlowElement-xinliuyuansu/m_flow}
 }
 ```
 
 ## 📧 Contact / 联系
 
-- GitHub Issues: [Issues](https://github.com/FlowElement-ai/m_flow/issues)
+- GitHub Issues: [Issues](https://github.com/FlowElement-xinliuyuansu/m_flow/issues)
 - Email: contact@xinliuyuansu.com

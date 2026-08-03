@@ -76,7 +76,7 @@ function HelpLinks() {
   const links = [
     {
       label: "Documentation",
-      href: "https://github.com/FlowElement-ai/m_flow",
+      href: "https://github.com/FlowElement-xinliuyuansu/m_flow",
       external: true,
     },
     {
@@ -86,7 +86,7 @@ function HelpLinks() {
     },
     {
       label: "Report Issue",
-      href: "https://github.com/FlowElement-ai/m_flow/issues",
+      href: "https://github.com/FlowElement-xinliuyuansu/m_flow/issues",
       external: true,
     },
   ];

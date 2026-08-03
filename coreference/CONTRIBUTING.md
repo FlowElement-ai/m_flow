@@ -23,12 +23,12 @@ Please be respectful and constructive in all interactions. We welcome contributo
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/FlowElement-ai/m_flow.git
+   git clone https://github.com/FlowElement-xinliuyuansu/m_flow.git
    cd chinese-coref
    ```
 3. **Add the upstream remote**:
    ```bash
-   git remote add upstream https://github.com/FlowElement-ai/m_flow.git
+   git remote add upstream https://github.com/FlowElement-xinliuyuansu/m_flow.git
    ```
 
 ## Development Setup
@@ -216,7 +216,7 @@ Avoid:
 
 If you have questions or need help:
 
-1. Check existing [Issues](https://github.com/FlowElement-ai/m_flow/issues)
+1. Check existing [Issues](https://github.com/FlowElement-xinliuyuansu/m_flow/issues)
 2. Open a new issue with the "question" label
 3. Contact us at contact@xinliuyuansu.com
 

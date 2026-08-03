@@ -68,10 +68,10 @@ onnx = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/FlowElement-ai/m_flow"
-Documentation = "https://github.com/FlowElement-ai/m_flow#readme"
-Repository = "https://github.com/FlowElement-ai/m_flow.git"
-Issues = "https://github.com/FlowElement-ai/m_flow/issues"
+Homepage = "https://github.com/FlowElement-xinliuyuansu/m_flow"
+Documentation = "https://github.com/FlowElement-xinliuyuansu/m_flow#readme"
+Repository = "https://github.com/FlowElement-xinliuyuansu/m_flow.git"
+Issues = "https://github.com/FlowElement-xinliuyuansu/m_flow/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

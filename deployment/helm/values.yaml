@@ -2,7 +2,7 @@
 # Override these in your own values.yaml or via --set flags.
 
 backend:
-  image: "FlowElement-ai/m_flow:latest"
+  image: "m_flow/m_flow:latest"
   port: 8000
   env:
     HOST: "0.0.0.0"

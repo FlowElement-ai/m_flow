@@ -32,7 +32,7 @@ jobs:
             Thank you for opening this pull request.
             A core maintainer will review your changes shortly.
             In the meantime, please make sure you've read our
-            [Contributing Guide](https://github.com/FlowElement-ai/m_flow/blob/main/CONTRIBUTING.md).
+            [Contributing Guide](https://github.com/FlowElement-xinliuyuansu/m_flow/blob/main/CONTRIBUTING.md).
           issue-message: >
             Hi @${{ github.actor }}, thanks for taking the time to open an issue!
 
@@ -41,5 +41,5 @@ jobs:
             2. Expected behaviour vs actual behaviour
             3. A minimal code snippet or configuration that triggers the issue
 
-            Check out our README at https://github.com/FlowElement-ai/m_flow for additional guidance.
+            Check out our README at https://github.com/FlowElement-xinliuyuansu/m_flow for additional guidance.
             A maintainer will follow up as soon as possible.

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 CLI_DESCRIPTION: str = "M-flow CLI — Manage knowledge graphs and cognitive processing pipelines."
 
-DEFAULT_DOCS_URL: str = "https://github.com/FlowElement-ai/m_flow"
+DEFAULT_DOCS_URL: str = "https://github.com/FlowElement-xinliuyuansu/m_flow"
 
 # ============================================================
 #  Command metadata

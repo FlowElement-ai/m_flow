@@ -301,7 +301,7 @@ export const SOLUTION_GUIDES: SolutionGuide[] = [
         step: 1,
         title: "Clone the repository",
         description: "Get the latest M-Flow source code",
-        code: "git clone https://github.com/FlowElement-ai/m_flow.git\ncd m_flow",
+        code: "git clone https://github.com/FlowElement-xinliuyuansu/m_flow.git\ncd m_flow",
         codeLanguage: "bash",
       },
       {

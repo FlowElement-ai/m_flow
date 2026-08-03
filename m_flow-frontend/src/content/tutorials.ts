@@ -556,7 +556,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     title: "GitHub Repository",
     description: "Source code and issues",
     icon: "Github",
-    href: "https://github.com/FlowElement-ai/m_flow",
+    href: "https://github.com/FlowElement-xinliuyuansu/m_flow",
     external: true,
   },
 ];

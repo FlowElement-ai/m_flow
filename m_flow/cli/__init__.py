@@ -16,7 +16,7 @@ from m_flow.cli.exceptions import CliCommandException
 from m_flow.cli.reference import SupportsCliCommand
 
 # Online documentation base URL for help messages
-DEFAULT_DOCS_URL: str = "https://github.com/FlowElement-ai/m_flow"
+DEFAULT_DOCS_URL: str = "https://github.com/FlowElement-xinliuyuansu/m_flow"
 
 # Public exports
 __all__ = [

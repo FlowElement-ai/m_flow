@@ -10,8 +10,8 @@ requiredBinaries:
   - docker
 requiredEnvVars:
   - LLM_API_KEY
-homepage: https://github.com/FlowElement-ai/m_flow
-repository: https://github.com/FlowElement-ai/m_flow/tree/main/openclaw-skill/mflow-memory
+homepage: https://github.com/FlowElement-xinliuyuansu/m_flow
+repository: https://github.com/FlowElement-xinliuyuansu/m_flow/tree/main/openclaw-skill/mflow-memory
 ---
 
 # M-flow Memory

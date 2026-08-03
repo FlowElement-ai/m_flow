@@ -107,7 +107,7 @@ def _download_url() -> tuple[str, str]:
     """Return (download_url, version)."""
     ver = get_version()
     clean = ver.replace("-local", "")
-    url = f"https://github.com/m-flow-project/m_flow/archive/refs/tags/v{clean}.zip"
+    url = f"https://github.com/FlowElement-xinliuyuansu/m_flow/archive/refs/tags/v{clean}.zip"
     return url, ver
 
 
