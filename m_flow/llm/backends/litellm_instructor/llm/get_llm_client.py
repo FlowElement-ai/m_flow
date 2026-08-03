@@ -22,6 +22,11 @@ class LLMProvider(str, Enum):
     MISTRAL = "mistral"
     BEDROCK = "bedrock"
     MINIMAX = "minimax"
+    ATLASCLOUD = "atlascloud"
+
+
+ATLASCLOUD_DEFAULT_ENDPOINT = "https://api.atlascloud.ai/v1"
+ATLASCLOUD_DEFAULT_MODEL = "deepseek-ai/deepseek-v4-pro"
 
 
 def create_llm_backend(raise_api_key_error: bool = True) -> Any:
@@ -109,6 +114,22 @@ def create_llm_backend(raise_api_key_error: bool = True) -> Any:
             cfg.llm_api_key,
             cfg.llm_model,
             "Custom",
+            max_completion_tokens=max_tokens,
+            instructor_mode=mode,
+            fallback_api_key=cfg.fallback_api_key,
+            fallback_endpoint=cfg.fallback_endpoint,
+            fallback_model=cfg.fallback_model,
+        )
+
+    if provider == LLMProvider.ATLASCLOUD:
+        _require_key()
+        from .generic_llm_api.adapter import GenericAPIAdapter
+
+        return GenericAPIAdapter(
+            cfg.llm_endpoint or ATLASCLOUD_DEFAULT_ENDPOINT,
+            cfg.llm_api_key,
+            cfg.llm_model or ATLASCLOUD_DEFAULT_MODEL,
+            "Atlas Cloud",
             max_completion_tokens=max_tokens,
             instructor_mode=mode,
             fallback_api_key=cfg.fallback_api_key,
