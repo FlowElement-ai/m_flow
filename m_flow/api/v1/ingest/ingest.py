@@ -8,6 +8,7 @@ Aims to improve usability while preserving flexibility of underlying add() and m
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 from dataclasses import dataclass
 from enum import Enum
@@ -267,7 +268,10 @@ async def ingest(
     mi = kwargs.get("memorize_incremental_loading")
     memorize_kwargs["incremental_loading"] = True if mi is None else mi
 
-    # Step 1: Add
+    # Determine if background mode requested
+    run_in_background = kwargs.get("run_in_background", False)
+
+    # Step 1: Add (always sync — memorize needs the dataset_id)
     add_result: Optional[RunEvent] = await add(
         data=data,
         dataset_name=dataset_name,
@@ -290,9 +294,27 @@ async def ingest(
         )
 
     # Step 2: Memorize
-    run_in_background = kwargs.get("run_in_background", False)
     actual_dataset_name = add_result.dataset_name
 
+    if run_in_background:
+        # Run memorize in background — fire and return immediately
+        async def _memorize_bg():
+            try:
+                await memorize(datasets=[actual_dataset_name], **memorize_kwargs)
+            except Exception as e:
+                logger.warning(f"[ingest] background memorize failed: {e}", exc_info=True)
+
+        asyncio.create_task(_memorize_bg())
+        logger.info(f"[ingest] Background ingest started, dataset_id={add_result.dataset_id}")
+        return IngestResult(
+            dataset_id=add_result.dataset_id,
+            dataset_name=add_result.dataset_name,
+            status=IngestStatus.BACKGROUND_STARTED,
+            add_run_id=add_result.workflow_run_id,
+            memorize_run_id=None,
+        )
+
+    # Synchronous memorize (original behavior)
     try:
         memorize_result = await memorize(
             datasets=[actual_dataset_name],
@@ -312,15 +334,12 @@ async def ingest(
     # Extract memorize run_id
     memorize_run_id = _extract_memorize_run_id(memorize_result, add_result.dataset_id)
 
-    # Determine completion status
-    final_status = IngestStatus.BACKGROUND_STARTED if run_in_background else IngestStatus.COMPLETED
-
-    logger.info(f"[ingest] Completed with status={final_status.value}, dataset_id={add_result.dataset_id}")
+    logger.info(f"[ingest] Completed with status=COMPLETED, dataset_id={add_result.dataset_id}")
 
     return IngestResult(
         dataset_id=add_result.dataset_id,
         dataset_name=add_result.dataset_name,
-        status=final_status,
+        status=IngestStatus.COMPLETED,
         add_run_id=add_result.workflow_run_id,
         memorize_run_id=memorize_run_id,
     )
