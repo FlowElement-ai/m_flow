@@ -7,8 +7,10 @@ Instructor for type-safe structured responses.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
+import re
 from typing import TYPE_CHECKING, Type
 
 import instructor
@@ -73,6 +75,75 @@ def _model_has_schema_issues(model_name: str) -> bool:
     return False
 
 
+def _strip_markdown(text: str) -> str:
+    """
+    Strip markdown code block fences from LLM response text.
+
+    Handles:
+      - ```json ... ``` blocks (including nested backticks)
+      - ``` ... ``` plain code blocks
+      - Leading/trailing whitespace and control characters
+
+    This fixes the issue where qwen3 (and other reasoning models) wrap
+    JSON responses in markdown fences, causing instructor's pydantic
+    validation to fail with "not valid JSON" errors.
+    """
+    if not text:
+        return text
+
+    # Strip leading markdown fences (```json, ```, etc.)
+    # Pattern matches ```json, ```javascript, ``` etc. at start of string
+    text = re.sub(r'^```json\s*', '', text, flags=re.IGNORECASE | re.MULTILINE)
+    text = re.sub(r'^```\w*\s*', '', text, flags=re.IGNORECASE | re.MULTILINE)
+
+    # Strip trailing markdown fences
+    text = re.sub(r'\s*```$', '', text, flags=re.MULTILINE | re.IGNORECASE)
+
+    # Strip invisible control characters (0x00-0x08, 0x0b, 0x0c, 0x0e-0x1f)
+    # that can appear in LLM output and break JSON parsing
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
+
+    return text.strip()
+
+
+class _MarkdownStrippingClient:
+    """
+    Thin wrapper around an instructor client that strips markdown fences
+    from LLM raw response content *before* instructor's response_model
+    parsing, so that JSON wrapped in ```json blocks is handled cleanly.
+    """
+
+    def __init__(self, delegate):
+        self._delegate = delegate
+
+    @property
+    def chat(self):
+        return _MarkdownStrippingCompletions(self._delegate.chat)
+
+
+class _MarkdownStrippingCompletions:
+    def __init__(self, delegate_chat):
+        self._delegate = delegate_chat
+
+    async def create(self, **kwargs):
+        # Call the original instructor create (which parses response_model)
+        response = await self._delegate.create(**kwargs)
+
+        # Strip markdown from message.content if present
+        if hasattr(response, "choices") and response.choices:
+            choice = response.choices[0]
+            if hasattr(choice.message, "content") and choice.message.content:
+                original = choice.message.content
+                cleaned = _strip_markdown(original)
+                if cleaned != original:
+                    # Create a new message with the cleaned content
+                    # ChatMessage is immutable via __slots__, so we reconstruct
+                    from openai.chat_completions import ChatCompletionMessage
+                    choice.message.content = cleaned
+
+        return response
+
+
 class OpenAIAdapter(LLMBackend):
     """
     LiteLLM/Instructor adapter for OpenAI-compatible APIs.
@@ -131,6 +202,11 @@ class OpenAIAdapter(LLMBackend):
             litellm.completion,
             mode=instructor.Mode(effective_mode),
         )
+
+        # Patch async client to strip markdown from LLM responses before instructor parsing
+        # This fixes qwen3/markdown-JSON issue: LLM returns ```json\n[...]]\n``` 
+        # which causes instructor pydantic validation to fail
+        self._async_client = _MarkdownStrippingClient(self._async_client)
 
         # Store configuration
         self._model = model
