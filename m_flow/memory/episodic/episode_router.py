@@ -27,6 +27,14 @@ from m_flow.shared.llm_concurrency import get_global_llm_semaphore
 from m_flow.adapters.graph import get_graph_provider
 from m_flow.adapters.vector import get_vector_provider
 from m_flow.adapters.vector.exceptions import CollectionNotFoundError
+
+# LanceError: raised by LanceDB when searching empty/corrupted tables
+# Catches "Generic memory error: Invalid range 0..0 for object of size 0 bytes"
+try:
+    import lancedb
+    _LANCE_ERROR = (lancedb.LanceError,) if hasattr(lancedb, "LanceError") else (Exception,)
+except ImportError:
+    _LANCE_ERROR = (Exception,)
 from m_flow.llm.LLMGateway import LLMService
 from m_flow.llm.prompts import read_query_prompt
 
@@ -143,6 +151,12 @@ async def _search_collection(
             where_filter=where_filter,
         )
     except CollectionNotFoundError:
+        return []
+    except _LANCE_ERROR as e:
+        # LanceDB raises LanceError(IO) when searching empty or corrupted tables:
+        # "Generic memory error: Invalid range 0..0 for object of size 0 bytes"
+        # This is safe to degrade from — return empty results and route to new Episode
+        logger.warning(f"[router] search {collection} failed (LanceDB error): {e}")
         return []
     except Exception as e:
         logger.warning(f"[router] search {collection} failed: {e}")
