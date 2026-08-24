@@ -121,6 +121,7 @@ chromadb = [
 redis = ["redis>=5.0.0,<8.0.0"]
 pinecone = ["pinecone>=5.0"]
 milvus = ["pymilvus>=2.4"]
+qdrant = ["qdrant-client>=1.12"]
 
 # Local embeddings (default uses OpenAI API)
 embeddings = [

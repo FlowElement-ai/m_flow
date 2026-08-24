@@ -24,7 +24,7 @@ def create_vector_engine(
     """
     Instantiate vector database adapter.
 
-    Supports: PGVector, ChromaDB, LanceDB, Neptune Analytics,
+    Supports: PGVector, ChromaDB, LanceDB, Qdrant, Neptune Analytics,
     and any registered custom providers.
 
     Args:
@@ -67,6 +67,16 @@ def create_vector_engine(
     # Neptune Analytics - AWS managed service
     if provider_lower == "neptune_analytics":
         return _create_neptune_adapter(vector_db_url, embedder)
+
+    # Qdrant - open-source vector store (remote server)
+    if provider_lower == "qdrant":
+        from .qdrant.QdrantProvider import QdrantProvider
+
+        return QdrantProvider(
+            url=vector_db_url,
+            api_key=vector_db_key,
+            embedding_engine=embedder,
+        )
 
     # Pinecone - cloud vector store (M-flow exclusive)
     if provider_lower == "pinecone":

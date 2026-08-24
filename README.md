@@ -263,7 +263,7 @@ Per-category breakdowns, reproduction scripts, raw data, and methodology for all
 | **Episodic + Procedural memory** | Hierarchical recall for facts and step-by-step knowledge |
 | **5 retrieval modes** | Episodic, Procedural, Triplet Completion, Lexical, Cypher |
 | **50+ file formats** | PDFs, DOCX, HTML, Markdown, images, audio, and more |
-| **Multi-DB support** | LanceDB, Neo4j, PostgreSQL/pgvector, ChromaDB, KùzuDB, Pinecone |
+| **Multi-DB support** | LanceDB, Neo4j, PostgreSQL/pgvector, ChromaDB, KùzuDB, Pinecone, Milvus, Qdrant |
 | **LLM-agnostic** | OpenAI, Anthropic, Mistral, Groq, Ollama, LLaMA-Index, LangChain |
 | **Precise summarization** | Preserves all factual details (dates, numbers, names) at the cost of lower compression — RAG context will be longer but more accurate |
 | **MCP server** | Expose memory as Model Context Protocol tools for any IDE |

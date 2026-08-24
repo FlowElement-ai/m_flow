@@ -64,6 +64,14 @@ const VECTOR_DB_PROVIDERS: VectorDBProvider[] = [
     defaultUrl: "postgresql://user:pass@localhost:5432/mflow",
     hint: "PostgreSQL extension for vector similarity search",
   },
+  {
+    id: "qdrant",
+    name: "Qdrant",
+    requiresUrl: true,
+    requiresApiKey: true,
+    defaultUrl: "http://localhost:6333",
+    hint: "Open-source vector database, local server or Qdrant Cloud",
+  },
 ];
 
 // ============================================================================
