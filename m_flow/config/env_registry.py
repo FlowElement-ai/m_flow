@@ -116,7 +116,7 @@ ENV_REGISTRY: Dict[str, Dict[str, Any]] = {
     },
     "VECTOR_DB_PROVIDER": {
         "default": "lancedb",
-        "description": "Vector database provider (lancedb, chromadb, pinecone)",
+        "description": "Vector database provider (lancedb, chromadb, pgvector, pinecone, milvus, qdrant)",
         "category": "database",
         "type": "str",
     },

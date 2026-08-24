@@ -26,7 +26,7 @@ class VectorDBConfigDTO(BaseModel):
 
     url: str = Field(default="", description="Connection URL for the vector store")
     api_key: str = Field(default="", description="API key (or masked placeholder)")
-    provider: Literal["lancedb", "pgvector", "chromadb"] = Field(..., description="Backend provider slug")
+    provider: Literal["lancedb", "pgvector", "chromadb", "qdrant"] = Field(..., description="Backend provider slug")
 
 
 async def save_vector_db_config(dto: VectorDBConfigDTO, persist: bool = True) -> None:

@@ -1,9 +1,8 @@
 # ┌──────────────────────────────────────────────────────────────────────────┐
 # │ M-Flow CI Pipeline: Vector Database Provider Verification               │
 # │                                                                          │
-# │ Validates embedding storage and retrieval against each supported vector │
-# │ backend: PostgreSQL/PGVector and LanceDB. ChromaDB support is currently │
-# │ suspended and will be re-enabled when the integration is stabilised.    │
+# │ Validates embedding storage and retrieval against each vector backend   │
+# │ with a CI job: PGVector, Qdrant, ChromaDB, LanceDB.                     │
 # │                                                                          │
 # │ Owner: M-Flow Platform Engineering                                      │
 # └──────────────────────────────────────────────────────────────────────────┘
@@ -112,6 +111,43 @@ jobs:
 
       - name: "Execute PGVector assertions"
         run: uv run python ./m_flow/tests/test_pgvector.py
+
+  # ── Qdrant embedding store ────────────────────────────────────────────
+  qdrant-assertions:
+    if: ${{ inputs.databases == 'all' || contains(inputs.databases, 'qdrant') }}
+    timeout-minutes: 15
+    runs-on: ubuntu-22.04
+    name: "qdrant-embedding-store"
+    defaults: {run: {shell: bash}}
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.19.0
+        ports: ["6333:6333"]
+    env:
+      ENV: 'dev'
+      ENABLE_BACKEND_ACCESS_CONTROL: 'false'
+      VECTOR_DB_PROVIDER: 'qdrant'
+      VECTOR_DB_URL: 'http://localhost:6333'
+      LLM_MODEL: ${{ secrets.LLM_MODEL }}
+      LLM_ENDPOINT: ${{ secrets.LLM_ENDPOINT }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_API_VERSION: ${{ secrets.LLM_API_VERSION }}
+      EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}
+      EMBEDDING_DIMENSIONS: "1536"
+      EMBEDDING_ENDPOINT: ${{ secrets.EMBEDDING_ENDPOINT }}
+      EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
+      EMBEDDING_API_VERSION: ${{ secrets.EMBEDDING_API_VERSION }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        name: "Clone M-Flow repository"
+        with: {fetch-depth: 0}
+
+      - uses: ./.github/actions/m_flow_setup
+        name: "Configure runtime environment"
+        with: {python-version: "${{ inputs.python-version }}", extra-dependencies: "qdrant"}
+
+      - name: "Execute Qdrant assertions"
+        run: uv run python ./m_flow/tests/test_qdrant.py
 
   # ── LanceDB embedding store ────────────────────────────────────────────
   lancedb-assertions:
